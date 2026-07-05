@@ -39,6 +39,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
+import yesman.epicfight.api.animation.AnimationPlayer;
 import yesman.epicfight.api.animation.AnimationManager.AnimationAccessor;
 import yesman.epicfight.api.animation.types.DynamicAnimation;
 import yesman.epicfight.api.animation.types.StaticAnimation;
@@ -391,12 +392,13 @@ public class YamatoInnate extends EFNWeaponInnateBase {
       PlayerInputState inputState = InputManager.getInputState(localPlayer);
       CapabilityItem itemCapability = EpicFightCapabilities.getItemStackCapability(itemstack);
       if (itemCapability != null && itemCapability.getInnateSkill(container.getExecutor(), itemstack) == this) {
+         AnimationPlayer animationPlayer = container.getExecutor().getAnimator().getPlayerFor(null);
+         DynamicAnimation currentAnimation = animationPlayer != null ? animationPlayer.getAnimation().orElse(null) : null;
+         boolean isRepaidSlash = currentAnimation != null && currentAnimation.getRealAnimation().equals(EFNYamatoAnimations.YAMATO_REPAIDSLASH);
          if (Minecraft.getInstance().options.keyJump.isDown()
             && localPlayer.onGround()
             && !localPlayer.isInWater()
-            && !((DynamicAnimation)Objects.requireNonNull(container.getExecutor().getAnimator().getPlayerFor(null)).getAnimation().get())
-               .getRealAnimation()
-               .equals(EFNYamatoAnimations.YAMATO_REPAIDSLASH)
+            && !isRepaidSlash
             && container.getExecutor().getEntityState().inaction()
             && container.getExecutor().getEntityState().canBasicAttack()) {
             inputState = inputState.withJumping(true);

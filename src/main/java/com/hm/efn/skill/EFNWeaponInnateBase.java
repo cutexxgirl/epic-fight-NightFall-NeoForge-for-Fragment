@@ -1,5 +1,6 @@
 package com.hm.efn.skill;
 
+import com.hm.efn.util.EFNBasicAttackRouting;
 import com.p1nero.invincible.skill.ComboBasicAttack;
 import com.p1nero.invincible.skill.ComboBasicAttack.Builder;
 import java.util.Optional;
@@ -30,7 +31,10 @@ public class EFNWeaponInnateBase extends ComboBasicAttack {
       }
 
       Skill skill = event.getSkillContainer() != null ? event.getSkillContainer().getSkill() : null;
-      if (skill != null && skill.getCategory().equals(SkillCategories.BASIC_ATTACK) && !event.getPlayerPatch().getOriginal().isPassenger()) {
+      if (skill != null
+         && skill.getCategory().equals(SkillCategories.BASIC_ATTACK)
+         && !event.getPlayerPatch().getOriginal().isPassenger()
+         && !EFNBasicAttackRouting.shouldLetEpicFightBasicAttackRun(event.getPlayerPatch(), capabilityItem)) {
          event.cancel();
       }
    }

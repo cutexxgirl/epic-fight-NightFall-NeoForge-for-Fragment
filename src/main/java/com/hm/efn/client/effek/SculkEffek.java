@@ -2,9 +2,8 @@ package com.hm.efn.client.effek;
 
 import com.guhao.vix.particles.AAAEffekParticle;
 import java.util.Random;
+import net.minecraft.client.Minecraft;
 import mod.chloeprime.aaaparticles.api.client.effekseer.ParticleEmitter;
-import mod.chloeprime.aaaparticles.api.common.AAALevel;
-import mod.chloeprime.aaaparticles.api.common.ParticleEmitterInfo;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.resources.ResourceLocation;
@@ -15,21 +14,26 @@ import net.neoforged.api.distmarker.OnlyIn;
 @OnlyIn(Dist.CLIENT)
 public class SculkEffek {
    public static final ResourceLocation SCULK_EFFEK = ResourceLocation.fromNamespaceAndPath("efn", "sculk");
+   private static final int SCULK_LIFETIME_TICKS = 24;
 
    public static void playSculk(SculkEffek.Type type, Level level, double x, double y, double z, float radius) {
       Random random = new Random();
-      ParticleEmitterInfo info = ParticleEmitterInfo.create(level, type.effekId())
-         .position(x, y, z)
-         .rotation(0.0F, random.nextFloat(-90.0F, 90.0F), 0.0F)
-         .scale(radius / type.intrinsicRadius());
-      AAALevel.addParticle(level, true, info);
+      if (level instanceof ClientLevel clientLevel) {
+         float scale = radius / type.intrinsicRadius();
+         AAAEffekParticle particle = new AAAEffekParticle(clientLevel, type.effekId(), x, y, z, 0.0, 0.0, 0.0)
+            .setLifetimeTicks(SCULK_LIFETIME_TICKS)
+            .setEmitterRotation(0.0F, random.nextFloat(-90.0F, 90.0F), 0.0F)
+            .setEmitterScale(scale, scale, scale);
+         Minecraft.getInstance().particleEngine.add(particle);
+      }
    }
 
    public static Particle createParticleWrapper(
       SculkEffek.Type type, ClientLevel level, double x, double y, double z, double dx, double dy, double dz, float radius
    ) {
       float scale = radius / type.intrinsicRadius();
-      AAAEffekParticle particle = new AAAEffekParticle(level, type.effekId(), x, y, z, dx, dy, dz);
+      AAAEffekParticle particle = new AAAEffekParticle(level, type.effekId(), x, y, z, dx, dy, dz).setLifetimeTicks(SCULK_LIFETIME_TICKS);
+      particle.setEmitterScale(scale, scale, scale);
       if (particle.getEmitter().isPresent()) {
          ((ParticleEmitter)particle.getEmitter().get()).setScale(scale, scale, scale);
       }

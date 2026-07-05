@@ -1,7 +1,7 @@
 package com.hm.efn.client.particle;
 
-import com.guhao.vix.particles.TexturedSkinModelParticle;
 import com.hm.efn.client.model.EFNMeshes;
+import com.hm.efn.client.particle.model.TexturedSkinModelParticle;
 import com.hm.efn.client.particle.efnparticletype.EFNParticleRenderTypes;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -54,11 +54,11 @@ public class YamatoFloor extends TexturedSkinModelParticle {
    }
 
    public void tick() {
-      this.m_5989_();
+      this.tickModel();
    }
 
    public void render(@NotNull VertexConsumer vertexBuffer, Camera camera, float pt) {
-      this.m_5744_(vertexBuffer, camera, pt);
+      this.renderModel(vertexBuffer, camera, pt);
       this.yaw += 0.05F;
       this.scale = this.scale + Math.max(30 - this.age, 0) * 0.2F;
       this.alpha = (float)(this.lifetime - this.age) / this.lifetime * 2.0F;

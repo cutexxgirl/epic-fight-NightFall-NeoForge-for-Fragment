@@ -26,6 +26,8 @@ import net.neoforged.neoforge.event.EventHooks;
 import org.jetbrains.annotations.NotNull;
 
 public class YamatoDriveFireBall extends LargeFireball {
+   private static final int MAX_LIFETIME_TICKS = 100;
+
    public YamatoDriveFireBall(EntityType<? extends LargeFireball> pEntityType, Level pLevel) {
       super(pEntityType, pLevel);
    }
@@ -145,6 +147,14 @@ public class YamatoDriveFireBall extends LargeFireball {
 
    public void tick() {
       super.tick();
+      if (!this.level().isClientSide) {
+         Entity owner = this.getOwner();
+         if (this.tickCount >= MAX_LIFETIME_TICKS || !(owner instanceof LivingEntity livingOwner) || !livingOwner.isAlive()) {
+            this.discard();
+            return;
+         }
+      }
+
       if (this.level().isClientSide) {
          for (int i = 0; i < 2; i++) {
             this.level()

@@ -79,13 +79,18 @@ public class YamatoDodge extends DodgeSkill {
          EventType.MOVEMENT_INPUT_EVENT,
          JUMP_EVENT_UUID,
          event -> {
-            if (((LocalPlayer)((LocalPlayerPatch)event.getPlayerPatch()).getOriginal()).getVehicle() == null
-               && ((LocalPlayerPatch)event.getPlayerPatch()).isEpicFightMode()
-               && !((LocalPlayer)((LocalPlayerPatch)event.getPlayerPatch()).getOriginal()).getAbilities().flying
-               && !((LocalPlayerPatch)event.getPlayerPatch()).isHoldingAny()
-               && !((LocalPlayerPatch)event.getPlayerPatch()).getEntityState().inaction()) {
+            if (!(event.getPlayerPatch() instanceof LocalPlayerPatch localPlayerPatch)
+               || !(localPlayerPatch.getOriginal() instanceof LocalPlayer localPlayer)) {
+               return;
+            }
+
+            if (localPlayer.getVehicle() == null
+               && localPlayerPatch.isEpicFightMode()
+               && !localPlayer.getAbilities().flying
+               && !localPlayerPatch.isHoldingAny()
+               && !localPlayerPatch.getEntityState().inaction()) {
                boolean jumpPressed = Minecraft.getInstance().options.keyJump.isDown();
-               boolean isOnGround = ((LocalPlayer)((LocalPlayerPatch)event.getPlayerPatch()).getOriginal()).onGround();
+               boolean isOnGround = localPlayer.onGround();
                if (isOnGround && jumpPressed) {
                   container.getDataManager().setData(EpicFightSkillDataKeys.JUMP_COUNT, 1);
                }

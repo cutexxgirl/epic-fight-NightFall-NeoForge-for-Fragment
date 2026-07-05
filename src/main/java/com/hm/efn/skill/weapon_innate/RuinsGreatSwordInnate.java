@@ -81,8 +81,7 @@ public class RuinsGreatSwordInnate extends EFNWeaponInnateBase {
             input.leftImpulse = 0.0F;
             input.jumping = false;
             input.shiftKeyDown = false;
-            if (((LocalPlayerPatch)event.getPlayerPatch()).isLogicalClient()) {
-               LocalPlayer player = (LocalPlayer)((LocalPlayerPatch)event.getPlayerPatch()).getOriginal();
+            if (event.getPlayerPatch() instanceof LocalPlayerPatch localPlayerPatch && localPlayerPatch.getOriginal() instanceof LocalPlayer player) {
                player.setSprinting(false);
             }
          }

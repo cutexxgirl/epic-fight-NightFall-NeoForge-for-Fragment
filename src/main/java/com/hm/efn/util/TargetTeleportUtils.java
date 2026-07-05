@@ -68,8 +68,6 @@ public class TargetTeleportUtils {
          }
 
          List<LivingEntity> recentEntities = collectTeleportTargets(playerPatch, player, hitTarget);
-         playerPatch.getCurrentlyActuallyHitEntities().clear();
-         player.setLastHurtMob(null);
          if (recentEntities.isEmpty()) {
             return;
          }
@@ -86,6 +84,7 @@ public class TargetTeleportUtils {
          double targetZ = target.getZ() + Math.cos(radianYaw) * baseOffset;
          double targetY = target.getY() + 0.7;
          if (attemptTeleport(player, target, targetX, targetY, targetZ)) {
+            clearTeleportContext(playerPatch, player);
             spawnTeleportEffects(player);
             player.addEffect(new MobEffectInstance(EFNMobEffectRegistry.VERTICALSTOP, 10, 1, false, false, false));
             player.getCooldowns().addCooldown(Items.ENDER_PEARL, 5);
@@ -136,6 +135,7 @@ public class TargetTeleportUtils {
             LivingEntity target = validTargets.get(0);
             Vec3 catchPos = playerPos.add(playerLook.scale(1.5)).add(0.0, 1.3, 0.0);
             if (attemptCatchEntity(player, target, catchPos)) {
+               clearTeleportContext(playerPatch, player);
                target.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 20, 0, false, false, false));
                target.addEffect(new MobEffectInstance(EFNMobEffectRegistry.VERTICALSTOP, 10, 0, false, false, false));
                target.addEffect(new MobEffectInstance(EFNMobEffectRegistry.HORIZONTAL_STOP, 10, 0, false, false, false));
@@ -153,6 +153,11 @@ public class TargetTeleportUtils {
       addTargetCandidate(targets, player.getLastHurtMob());
       addTargetCandidate(targets, playerPatch.getTarget());
       return targets;
+   }
+
+   private static void clearTeleportContext(ServerPlayerPatch playerPatch, ServerPlayer player) {
+      playerPatch.getCurrentlyActuallyHitEntities().clear();
+      player.setLastHurtMob(null);
    }
 
    private static void addTargetCandidate(List<LivingEntity> targets, LivingEntity entity) {
@@ -309,20 +314,26 @@ public class TargetTeleportUtils {
 
    private static boolean attemptTeleport(ServerPlayer player, LivingEntity target, double x, double y, double z) {
       MutableBlockPos checkPos = new MutableBlockPos(x, y, z);
+      MutableBlockPos headCheckPos = new MutableBlockPos(x, y + player.getBbHeight(), z);
+      ServerLevel level = (ServerLevel)player.level();
 
       for (int i = 0; i < 5; i++) {
-         BlockState block = target.level().getBlockState(checkPos);
-         boolean canPass = block.isAir() || block.getCollisionShape(target.level(), checkPos).isEmpty();
-         if (canPass) {
-            player.teleportTo((ServerLevel)player.level(), x, y, z, player.getYRot(), player.getXRot());
+         if (isPassable(level, checkPos) && isPassable(level, headCheckPos)) {
+            player.teleportTo(level, x, y, z, player.getYRot(), player.getXRot());
             return true;
          }
 
          checkPos.move(Direction.UP);
+         headCheckPos.move(Direction.UP);
          y++;
       }
 
       return false;
+   }
+
+   private static boolean isPassable(ServerLevel level, MutableBlockPos pos) {
+      BlockState block = level.getBlockState(pos);
+      return block.isAir() || block.getCollisionShape(level, pos).isEmpty();
    }
 
    private static void spawnTeleportEffects(ServerPlayer player) {

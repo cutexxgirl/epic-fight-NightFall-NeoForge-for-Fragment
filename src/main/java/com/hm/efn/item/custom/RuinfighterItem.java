@@ -43,7 +43,7 @@ public abstract class RuinfighterItem extends ArmorItem {
    );
 
    public RuinfighterItem(Type type, Properties properties) {
-      super(RUINFIGHTER_MATERIAL, type, properties.rarity(Rarity.EPIC).fireResistant());
+      super(RUINFIGHTER_MATERIAL, type, properties.rarity(Rarity.EPIC).fireResistant().stacksTo(1));
    }
 
    public boolean isDamageable(ItemStack stack) {

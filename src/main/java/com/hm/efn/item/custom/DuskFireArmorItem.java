@@ -38,7 +38,7 @@ public abstract class DuskFireArmorItem extends ArmorItem {
    );
 
    public DuskFireArmorItem(Type type, Properties properties) {
-      super(DUSKFIRE_MATERIAL, type, properties.rarity(Rarity.EPIC).fireResistant());
+      super(DUSKFIRE_MATERIAL, type, properties.rarity(Rarity.EPIC).fireResistant().stacksTo(1));
    }
 
    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {

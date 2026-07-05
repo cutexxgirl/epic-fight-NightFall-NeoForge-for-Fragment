@@ -356,9 +356,8 @@ public class MurasamaInnate extends EFNWeaponInnateBase {
          DODGE_CANCEL_UUID,
          event -> {
             if (EFNSkillChecks.hasCategory(event.getSkillContainer(), SkillCategories.DODGE) && !event.isStateExecutable()) {
-               DynamicAnimation animation = (DynamicAnimation)Objects.requireNonNull(container.getExecutor().getAnimator().getPlayerFor(null))
-                  .getRealAnimation()
-                  .get();
+               AnimationPlayer animationPlayer = container.getExecutor().getAnimator().getPlayerFor(null);
+               DynamicAnimation animation = animationPlayer != null ? animationPlayer.getRealAnimation().orElse(null) : null;
                if (animation instanceof ActionAnimation
                   && !(animation instanceof DodgeAnimation)
                   && !(animation instanceof ZansetsuAttackAnimation)
@@ -854,9 +853,9 @@ public class MurasamaInnate extends EFNWeaponInnateBase {
    }
 
    private <T> void resetStateKey(SkillDataManager dataManager, DeferredHolder<SkillDataKey<?>, ? extends SkillDataKey<T>> dataKey) {
-      T defaultValue = dataKey.value().defaultValue();
-      if (!Objects.equals(dataManager.getDataValue(dataKey), defaultValue)) {
-         if (dataManager.hasData(dataKey)) {
+      if (dataManager.hasData(dataKey)) {
+         T defaultValue = dataKey.value().defaultValue();
+         if (!Objects.equals(dataManager.getDataValue(dataKey), defaultValue)) {
             dataManager.setDataSync(dataKey, defaultValue);
          }
       }

@@ -1,7 +1,7 @@
 package com.hm.efn.client.particle;
 
-import com.guhao.vix.particles.TexturedSkinModelParticle;
 import com.hm.efn.client.model.EFNMeshes;
+import com.hm.efn.client.particle.model.TexturedSkinModelParticle;
 import com.hm.efn.client.particle.efnparticletype.EFNParticleRenderTypes;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -59,7 +59,7 @@ public class YamatoLastSphere extends TexturedSkinModelParticle {
    }
 
    public void tick() {
-      this.m_5989_();
+      this.tickModel();
       if (this.age >= this.lifetime) {
          this.remove();
       }

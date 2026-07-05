@@ -1,8 +1,8 @@
 package com.hm.efn.client.particle;
 
 import com.guhao.vix.client.pipeline.PostEffectPipelines;
-import com.guhao.vix.particles.TexturedSkinModelParticle;
 import com.hm.efn.client.model.EFNMeshes;
+import com.hm.efn.client.particle.model.TexturedSkinModelParticle;
 import com.hm.efn.client.render.EFNRenderType;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -57,13 +57,13 @@ public class Block extends TexturedSkinModelParticle {
    }
 
    public void tick() {
-      this.m_5989_();
+      this.tickModel();
    }
 
    public void render(@NotNull VertexConsumer vertexBuffer, Camera camera, float pt) {
       if (PostEffectPipelines.isActive()) {
          EFNRenderType.MeshSpaceBrokenEnd.callPipeline();
-         this.m_5744_(vertexBuffer, camera, pt);
+         this.renderModel(vertexBuffer, camera, pt);
          if (this.caster != null && this.caster.getStunShield() <= 0.0F) {
             this.remove();
          }

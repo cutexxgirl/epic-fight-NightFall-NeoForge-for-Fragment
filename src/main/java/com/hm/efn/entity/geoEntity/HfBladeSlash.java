@@ -139,7 +139,7 @@ public class HfBladeSlash extends GeoVFXEntity {
       Level level, LivingEntity owner, Vec3 position, float scale, float xRotOffset, float yRotOffset, float zRotOffset, float startYRot
    ) {
       HfBladeSlash slash = new HfBladeSlash(
-         (EntityType<? extends GeoVFXEntity>)EFNEntity.MURASAMA_SLASH.get(), level, position.x, position.y, position.z, startYRot, owner
+         (EntityType<? extends GeoVFXEntity>)EFNEntity.HF_BLADE_SLASH.get(), level, position.x, position.y, position.z, startYRot, owner
       );
       slash.setScale(scale);
       slash.setXRotOffset(xRotOffset);

@@ -35,7 +35,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.registries.DeferredHolder;
-import yesman.epicfight.api.animation.types.DynamicAnimation;
+import yesman.epicfight.api.animation.AnimationPlayer;
 import yesman.epicfight.api.animation.types.StaticAnimation;
 import yesman.epicfight.api.asset.AssetAccessor;
 import yesman.epicfight.client.gui.BattleModeGui;
@@ -106,12 +106,15 @@ public class ZansetsuSkill extends PassiveSkill {
             return false;
          }
 
-         DynamicAnimation animation = (DynamicAnimation)Objects.requireNonNull(executor.getAnimator().getPlayerFor(null)).getRealAnimation().get();
-         AssetAccessor<? extends StaticAnimation> realAnim = animation.getRealAnimation();
-         if (realAnim.equals(EFNMurasamaAnimations.HF_MURASAMA_ZANDATSU_AIR)
-            || realAnim.equals(EFNMurasamaAnimations.HF_MURASAMA_ZANDATSU)
-            || realAnim.equals(EFNHfBladeAnimations.HF_BLADE_ZANDATSU)
-            || realAnim.equals(EFNHfBladeAnimations.HF_BLADE_ZANDATSU_AIR)) {
+         AnimationPlayer animationPlayer = executor.getAnimator().getPlayerFor(null);
+         AssetAccessor<? extends StaticAnimation> realAnim = animationPlayer != null ? animationPlayer.getRealAnimation() : null;
+         if (realAnim != null
+            && (
+               realAnim.equals(EFNMurasamaAnimations.HF_MURASAMA_ZANDATSU_AIR)
+                  || realAnim.equals(EFNMurasamaAnimations.HF_MURASAMA_ZANDATSU)
+                  || realAnim.equals(EFNHfBladeAnimations.HF_BLADE_ZANDATSU)
+                  || realAnim.equals(EFNHfBladeAnimations.HF_BLADE_ZANDATSU_AIR)
+            )) {
             return false;
          }
 

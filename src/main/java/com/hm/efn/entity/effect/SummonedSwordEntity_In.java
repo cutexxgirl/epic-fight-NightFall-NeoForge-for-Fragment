@@ -41,6 +41,8 @@ import yesman.epicfight.world.capabilities.entitypatch.player.ServerPlayerPatch;
 import yesman.epicfight.world.capabilities.item.CapabilityItem;
 
 public class SummonedSwordEntity_In extends VFXEntity {
+   private static final int MAX_LIFETIME_TICKS = 300;
+   private static final int MAX_MISSING_TARGET_TICKS = 20;
    private static final EntityDataAccessor<Optional<UUID>> DATA_TARGET_UUID = SynchedEntityData.defineId(
       SummonedSwordEntity_In.class, EntityDataSerializers.OPTIONAL_UUID
    );
@@ -48,6 +50,7 @@ public class SummonedSwordEntity_In extends VFXEntity {
    private LivingEntity initialTarget;
    private Vec3 offset = Vec3.ZERO;
    private boolean effectsApplied = false;
+   private int missingTargetTicks;
 
    public SummonedSwordEntity_In(LivingEntity owner, LivingEntity target, float scale, Vec3 offset) {
       super((EntityType)EFNEntity.SUMMONED_SWORD_IN.get(), owner, scale);
@@ -162,6 +165,12 @@ public class SummonedSwordEntity_In extends VFXEntity {
       super.tick();
       CullableUtil.setAlwaysVisible(this);
       if (!this.level().isClientSide) {
+         if (this.tickCount >= MAX_LIFETIME_TICKS) {
+            this.removeEffects();
+            this.discard();
+            return;
+         }
+
          if (this.initialTarget == null || !this.initialTarget.isAlive()) {
             this.initialTarget = this.getInitialTarget();
          }
@@ -212,10 +221,17 @@ public class SummonedSwordEntity_In extends VFXEntity {
          }
 
          if (target == null || !target.isAlive()) {
+            this.missingTargetTicks++;
+            if (this.missingTargetTicks >= MAX_MISSING_TARGET_TICKS) {
+               this.removeEffects();
+               this.discard();
+            }
+
             return;
          }
       }
 
+      this.missingTargetTicks = 0;
       this.setYRot(target.yBodyRot);
       this.setYBodyRot(target.yBodyRot);
       this.setYHeadRot(target.yBodyRot);

@@ -13,7 +13,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 
 public class AAAFlowingEffekParticle extends Particle {
-   private static final int MAX_LIFE_TIME = 36000;
+   private static final int MAX_LIFE_TIME = 200;
    private static final int MAX_WAIT_TIME = 100;
    private int localAge;
    private ParticleEmitter emitter;
@@ -68,6 +68,11 @@ public class AAAFlowingEffekParticle extends Particle {
       return Optional.ofNullable(this.emitter);
    }
 
+   public AAAFlowingEffekParticle setLifetimeTicks(int lifetime) {
+      this.lifetime = Math.max(1, lifetime);
+      return this;
+   }
+
    @Override
    public void render(VertexConsumer vertexBuffer, Camera camera, float partialTicks) {
       this.m_5744_(vertexBuffer, camera, partialTicks);
@@ -111,6 +116,15 @@ public class AAAFlowingEffekParticle extends Particle {
    @Override
    public ParticleRenderType getRenderType() {
       return ParticleRenderType.NO_RENDER;
+   }
+
+   @Override
+   public void remove() {
+      if (this.emitter != null && this.emitter.exists()) {
+         this.emitter.stop();
+      }
+
+      super.remove();
    }
 
    public ParticleRenderType m_7556_() {

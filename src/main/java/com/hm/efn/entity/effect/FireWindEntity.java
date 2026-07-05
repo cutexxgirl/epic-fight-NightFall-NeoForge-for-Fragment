@@ -22,6 +22,7 @@ import yesman.epicfight.gameasset.Armatures.ArmatureAccessor;
 import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 
 public class FireWindEntity extends VFXEntity {
+   private static final int MAX_LIFETIME_TICKS = 120;
    private LivingEntity owner;
    private Vec3 offset;
    private boolean shouldRemove = false;
@@ -54,14 +55,16 @@ public class FireWindEntity extends VFXEntity {
       if (this.shouldRemove) {
          this.discard();
       } else {
+         if (!this.level().isClientSide && (this.tickCount >= MAX_LIFETIME_TICKS || this.owner == null || !this.owner.isAlive())) {
+            this.discard();
+            return;
+         }
+
          if (!this.level().isClientSide && this.owner != null) {
             Vec3 targetPos = this.owner.position().add(this.offset.x, this.offset.y, this.offset.z);
             Vec3 currentPos = this.position();
             Vec3 newPos = currentPos.add(targetPos.subtract(currentPos).scale(1.0));
             this.setPos(newPos);
-            if (!this.owner.isAlive()) {
-               this.discard();
-            }
          }
       }
    }

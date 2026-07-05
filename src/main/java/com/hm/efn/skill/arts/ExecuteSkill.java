@@ -367,10 +367,13 @@ public class ExecuteSkill extends PassiveSkill {
    private boolean isEntityInNeutralizeState(LivingEntityPatch<?> entityPatch) {
       AnimationPlayer animPlayer = entityPatch.getAnimator().getPlayerFor(null);
       if (animPlayer != null) {
-         ResourceLocation currentAnimation = ((DynamicAnimation)animPlayer.getAnimation().get()).getRegistryName();
-         if (currentAnimation != null) {
-            ResourceLocation neutralizeAnimation = ((StaticAnimation)entityPatch.getHitAnimation(StunType.NEUTRALIZE).get()).getRegistryName();
-            return currentAnimation.equals(neutralizeAnimation);
+         DynamicAnimation animation = animPlayer.getAnimation().orElse(null);
+         AssetAccessor<? extends StaticAnimation> neutralizeAnimationAccessor = entityPatch.getHitAnimation(StunType.NEUTRALIZE);
+         StaticAnimation neutralizeAnimation = neutralizeAnimationAccessor != null ? neutralizeAnimationAccessor.orElse(null) : null;
+         if (animation != null && neutralizeAnimation != null) {
+            ResourceLocation currentAnimationId = animation.getRegistryName();
+            ResourceLocation neutralizeAnimationId = neutralizeAnimation.getRegistryName();
+            return currentAnimationId != null && currentAnimationId.equals(neutralizeAnimationId);
          }
       }
 
@@ -382,7 +385,7 @@ public class ExecuteSkill extends PassiveSkill {
          return false;
       } else {
          StaticAnimation skillAnimation = (StaticAnimation)EFNSkillAnimations.EXECUTION.get();
-         StaticAnimation killingAnimation = (StaticAnimation)epicDamageSource.getAnimation().get();
+         StaticAnimation killingAnimation = epicDamageSource.getAnimation().orElse(null);
          return skillAnimation != null && skillAnimation.equals(killingAnimation);
       }
    }

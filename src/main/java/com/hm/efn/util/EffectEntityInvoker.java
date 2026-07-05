@@ -324,6 +324,7 @@ public class EffectEntityInvoker {
       return InTimeEvent.create(start, (entityPatch, self, params) -> {
          if (entityPatch.getOriginal() instanceof LivingEntity livingEntity) {
             if (livingEntity.level() instanceof ServerLevel serverLevel) {
+               clearExistingFireWind(livingEntity);
                FireWindEntity fireWind = new FireWindEntity(livingEntity, scale, new Vec3(xOffset, yOffset, zOffset));
                FireWindPatch patch = fireWind.getEntityPatch();
                if (patch != null) {

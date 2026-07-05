@@ -46,13 +46,16 @@ public class EFNEntity {
       "sin_summoned_sword", Builder.<SinSummonedSwordEntity>of(SinSummonedSwordEntity::new, MobCategory.MISC).sized(0.0F, 0.0F).clientTrackingRange(64).updateInterval(1).noSave().fireImmune()
    );
    public static final Supplier<EntityType<BlastSummonedSwordEntity>> BLAST_SUMMONED_SWORD = register(
-      "blast_summoned_sword", Builder.<BlastSummonedSwordEntity>of(BlastSummonedSwordEntity::new, MobCategory.MISC).sized(0.1F, 0.1F).noSave()
+      "blast_summoned_sword",
+      Builder.<BlastSummonedSwordEntity>of(BlastSummonedSwordEntity::new, MobCategory.MISC).sized(0.1F, 0.1F).clientTrackingRange(64).updateInterval(1).noSave()
    );
    public static final Supplier<EntityType<HeavyRainSwordEntity>> HEAVY_RAIN_SUMMONED_SWORD = register(
-      "heavy_rain_summoned_sword", Builder.<HeavyRainSwordEntity>of(HeavyRainSwordEntity::new, MobCategory.MISC).sized(0.1F, 0.1F).noSave()
+      "heavy_rain_summoned_sword",
+      Builder.<HeavyRainSwordEntity>of(HeavyRainSwordEntity::new, MobCategory.MISC).sized(0.1F, 0.1F).clientTrackingRange(64).updateInterval(1).noSave()
    );
    public static final Supplier<EntityType<DamoclesSwordEntity>> DAMOCLES_SWORD = register(
-      "damocles_sword", Builder.<DamoclesSwordEntity>of(DamoclesSwordEntity::new, MobCategory.MISC).sized(0.1F, 0.1F).noSave()
+      "damocles_sword",
+      Builder.<DamoclesSwordEntity>of(DamoclesSwordEntity::new, MobCategory.MISC).sized(0.1F, 0.1F).clientTrackingRange(64).updateInterval(1).noSave()
    );
    public static final Supplier<EntityType<SummonedSwordEntity_In>> SUMMONED_SWORD_IN = register(
       "summoned_sword_in", Builder.<SummonedSwordEntity_In>of(SummonedSwordEntity_In::new, MobCategory.MISC).sized(0.0F, 0.0F).clientTrackingRange(64).updateInterval(1).noSave().fireImmune()
