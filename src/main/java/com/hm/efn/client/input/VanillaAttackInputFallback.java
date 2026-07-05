@@ -1,17 +1,17 @@
 package com.hm.efn.client.input;
 
+import com.hm.efn.EFN;
 import com.hm.efn.mixin.ControlEngineAccessor;
 import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
 import com.mojang.blaze3d.platform.InputConstants;
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.common.EventBusSubscriber.Bus;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientTickEvent.Post;
 import net.neoforged.neoforge.client.event.InputEvent.MouseButton.Pre;
 import yesman.epicfight.api.client.input.action.EpicFightInputAction;
@@ -20,12 +20,12 @@ import yesman.epicfight.client.events.engine.ControlEngine;
 import yesman.epicfight.client.input.EpicFightKeyMappings;
 import yesman.epicfight.client.world.capabilites.entitypatch.player.LocalPlayerPatch;
 import yesman.epicfight.config.ClientConfig;
+import yesman.epicfight.skill.Skill;
 import yesman.epicfight.skill.SkillContainer;
 import yesman.epicfight.skill.SkillSlots;
 import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 import yesman.epicfight.world.capabilities.item.CapabilityItem;
 
-@EventBusSubscriber(modid = "efn", bus = Bus.GAME, value = Dist.CLIENT)
 public final class VanillaAttackInputFallback {
    private static boolean trackingAttackPress;
    private static boolean longPressTriggered;
@@ -34,16 +34,27 @@ public final class VanillaAttackInputFallback {
    private VanillaAttackInputFallback() {
    }
 
-   @SubscribeEvent(priority = EventPriority.HIGHEST)
+   public static void register(IEventBus gameBus) {
+      gameBus.addListener(EventPriority.HIGHEST, VanillaAttackInputFallback::onMouseInput);
+      gameBus.addListener(VanillaAttackInputFallback::onClientTick);
+      trace("registered manual NeoForge input listeners");
+   }
+
    public static void onMouseInput(Pre event) {
       if (!isVanillaAttackButton(event.getButton())) {
+         if (event.getButton() == 0) {
+            trace("mouse ignored button={} action={} vanillaAttackKey={}", event.getButton(), event.getAction(), Minecraft.getInstance().options.keyAttack.getKey());
+         }
+
          return;
       }
 
+      trace("mouse vanilla-attack button={} action={} trackingBefore={}", event.getButton(), event.getAction(), trackingAttackPress);
       if (event.getAction() == InputConstants.PRESS) {
-         trackingAttackPress = shouldUseFallback();
+         trackingAttackPress = shouldUseFallback("press");
          longPressTriggered = false;
          attackPressStartTick = getPlayerTick();
+         trace("press decision tracking={} startTick={}", trackingAttackPress, attackPressStartTick);
          if (trackingAttackPress) {
             event.setCanceled(true);
             drainPendingAttackClicks();
@@ -55,9 +66,10 @@ public final class VanillaAttackInputFallback {
          if (trackingAttackPress) {
             event.setCanceled(true);
             int heldTicks = Math.max(1, getPlayerTick() - attackPressStartTick);
+            trace("release heldTicks={} longPressTriggered={}", heldTicks, longPressTriggered);
             if (longPressTriggered) {
                ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
-            } else if (heldTicks <= ClientConfig.holdingThreshold + 1 && shouldUseFallback()) {
+            } else if (heldTicks <= ClientConfig.holdingThreshold + 1 && shouldUseFallback("release-short")) {
                drainPendingAttackClicks();
                requestComboAttack();
             } else {
@@ -71,16 +83,15 @@ public final class VanillaAttackInputFallback {
       }
    }
 
-   @SubscribeEvent
    public static void onClientTick(Post event) {
-      if (trackingAttackPress && !longPressTriggered && getPlayerTick() - attackPressStartTick > ClientConfig.holdingThreshold && shouldUseFallback()) {
+      if (trackingAttackPress && !longPressTriggered && getPlayerTick() - attackPressStartTick > ClientConfig.holdingThreshold && shouldUseFallback("hold-threshold")) {
          drainPendingAttackClicks();
          longPressTriggered = requestWeaponInnate();
       }
    }
 
    public static boolean shouldSuppressSeparateWeaponInnate() {
-      return isWeaponInnateBoundToVanillaAttack() && shouldUseFallback();
+      return isWeaponInnateBoundToVanillaAttack() && shouldUseFallback("suppress-separate-innate");
    }
 
    private static boolean isVanillaAttackButton(int button) {
@@ -88,14 +99,16 @@ public final class VanillaAttackInputFallback {
          && Minecraft.getInstance().options.keyAttack.getKey().getValue() == button;
    }
 
-   private static boolean shouldUseFallback() {
+   private static boolean shouldUseFallback(String source) {
       Minecraft minecraft = Minecraft.getInstance();
       if (minecraft.screen != null || minecraft.player == null || minecraft.level == null || minecraft.isPaused()) {
+         trace("{} fallback=false reason=context screen={} player={} level={} paused={}", source, minecraft.screen, minecraft.player != null, minecraft.level != null, minecraft.isPaused());
          return false;
       }
 
       LocalPlayerPatch playerPatch = EpicFightCapabilities.getEntityPatch(minecraft.player, LocalPlayerPatch.class);
       if (playerPatch == null || !playerPatch.isEpicFightMode()) {
+         trace("{} fallback=false reason=patch-or-mode patch={} epicMode={}", source, playerPatch != null, playerPatch != null && playerPatch.isEpicFightMode());
          return false;
       }
 
@@ -103,18 +116,46 @@ public final class VanillaAttackInputFallback {
       CapabilityItem capabilityItem = EpicFightCapabilities.getItemStackCapability(heldItem);
       boolean canPlayAttackAnimation = playerPatch.canPlayAttackAnimation();
       if (!canPlayAttackAnimation && !hasAutoAttackMotions(playerPatch, capabilityItem)) {
+         trace(
+            "{} fallback=false reason=no-canplay-no-auto item={} canPlay={} capEmpty={} autoCount={}",
+            source,
+            itemName(heldItem),
+            canPlayAttackAnimation,
+            capabilityItem == null || capabilityItem.isEmpty(),
+            autoAttackCount(playerPatch, capabilityItem)
+         );
          return false;
       }
 
       if (capabilityItem == null || capabilityItem.isEmpty()) {
+         trace("{} fallback={} reason=empty-capability item={} canPlay={}", source, canPlayAttackAnimation, itemName(heldItem), canPlayAttackAnimation);
          return canPlayAttackAnimation;
       }
 
       SkillContainer weaponInnate = playerPatch.getSkill(SkillSlots.WEAPON_INNATE);
       if (weaponInnate != null && weaponInnate.getSkill() instanceof EFNWeaponInnateBase skill && capabilityItem.getInnateSkill(playerPatch, heldItem) == skill) {
-         return EFNBasicAttackRouting.shouldLetEpicFightBasicAttackRun(playerPatch, capabilityItem);
+         boolean letEpicFightRun = EFNBasicAttackRouting.shouldLetEpicFightBasicAttackRun(playerPatch, capabilityItem);
+         trace(
+            "{} fallback={} reason=efn-innate item={} skill={} canPlay={} autoCount={}",
+            source,
+            letEpicFightRun,
+            itemName(heldItem),
+            skillName(skill),
+            canPlayAttackAnimation,
+            autoAttackCount(playerPatch, capabilityItem)
+         );
+         return letEpicFightRun;
       }
 
+      trace(
+         "{} fallback=true reason=standard-capability item={} weaponInnate={} itemInnate={} canPlay={} autoCount={}",
+         source,
+         itemName(heldItem),
+         skillName(weaponInnate),
+         skillName(capabilityItem.getInnateSkill(playerPatch, heldItem)),
+         canPlayAttackAnimation,
+         autoAttackCount(playerPatch, capabilityItem)
+      );
       return true;
    }
 
@@ -154,6 +195,7 @@ public final class VanillaAttackInputFallback {
 
       SkillContainer comboAttacks = playerPatch.getSkill(SkillSlots.COMBO_ATTACKS);
       if (comboAttacks == null || comboAttacks.isEmpty()) {
+         trace("combo request skipped reason=empty-container container={} skill={}", comboAttacks != null, skillName(comboAttacks));
          return;
       }
 
@@ -161,6 +203,16 @@ public final class VanillaAttackInputFallback {
       ControlEngineAccessor accessor = (ControlEngineAccessor)controlEngine;
       clearSameKeyAttackState(controlEngine);
       SkillCastEvent skillCastEvent = comboAttacks.sendCastRequest(playerPatch, controlEngine);
+      trace(
+         "combo request skill={} creative={} spectator={} executable={} skillExecutable={} stateExecutable={} reserve={}",
+         skillName(comboAttacks),
+         player.isCreative(),
+         player.isSpectator(),
+         skillCastEvent.isExecutable(),
+         skillCastEvent.isSkillExecutable(),
+         skillCastEvent.isStateExecutable(),
+         skillCastEvent.shouldReserveKey()
+      );
       if (skillCastEvent.isExecutable()) {
          player.resetAttackStrengthTicker();
          controlEngine.releaseAllServedKeys();
@@ -180,6 +232,7 @@ public final class VanillaAttackInputFallback {
 
       SkillContainer weaponInnate = playerPatch.getSkill(SkillSlots.WEAPON_INNATE);
       if (weaponInnate == null || weaponInnate.isEmpty()) {
+         trace("innate request skipped reason=empty-container container={} skill={}", weaponInnate != null, skillName(weaponInnate));
          return false;
       }
 
@@ -188,6 +241,16 @@ public final class VanillaAttackInputFallback {
       clearSameKeyAttackState(controlEngine);
       ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, true);
       SkillCastEvent skillCastEvent = weaponInnate.sendCastRequest(playerPatch, controlEngine);
+      trace(
+         "innate request skill={} creative={} spectator={} executable={} skillExecutable={} stateExecutable={} reserve={}",
+         skillName(weaponInnate),
+         player.isCreative(),
+         player.isSpectator(),
+         skillCastEvent.isExecutable(),
+         skillCastEvent.isSkillExecutable(),
+         skillCastEvent.isStateExecutable(),
+         skillCastEvent.shouldReserveKey()
+      );
       if (skillCastEvent.shouldReserveKey() && !player.isSpectator()) {
          accessor.efn$invokeReserveKey(SkillSlots.WEAPON_INNATE, EpicFightInputAction.WEAPON_INNATE_SKILL);
       } else {
@@ -203,5 +266,30 @@ public final class VanillaAttackInputFallback {
       accessor.efn$setWeaponInnatePressToggle(false);
       accessor.efn$setAttackLightPressToggle(false);
       accessor.efn$setWeaponInnatePressCounter(0);
+   }
+
+   private static int autoAttackCount(LocalPlayerPatch playerPatch, CapabilityItem capabilityItem) {
+      if (capabilityItem == null || capabilityItem.isEmpty()) {
+         return 0;
+      }
+
+      List<?> autoAttacks = capabilityItem.getAutoAttackMotion(playerPatch);
+      return autoAttacks != null ? autoAttacks.size() : 0;
+   }
+
+   private static String itemName(ItemStack itemStack) {
+      return itemStack == null || itemStack.isEmpty() ? "empty" : String.valueOf(BuiltInRegistries.ITEM.getKey(itemStack.getItem()));
+   }
+
+   private static String skillName(SkillContainer container) {
+      return container == null ? "null" : skillName(container.getSkill());
+   }
+
+   private static String skillName(Skill skill) {
+      return skill == null ? "null" : String.valueOf(skill.getRegistryName());
+   }
+
+   private static void trace(String message, Object... args) {
+      EFN.LOGGER.info("[EFN/InputTrace] " + message, args);
    }
 }

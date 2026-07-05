@@ -1,6 +1,7 @@
 package com.hm.efn;
 
 import com.hm.efn.client.input.EFNYamatoKeyPrompts;
+import com.hm.efn.client.input.VanillaAttackInputFallback;
 import com.hm.efn.client.model.ACGModel;
 import com.hm.efn.client.render.screens.devil.DevilRenderEvent;
 import com.hm.efn.client.sound.EFNSounds;
@@ -146,6 +147,7 @@ public class EFN {
       LOGGER.info("AAA Particles installed: {}", ModDetectionUtil.isTargetModInstalled());
       EFNAnimations.LoadCamAnims();
       ACGModel.LoadOtherModel();
+      VanillaAttackInputFallback.register(NeoForge.EVENT_BUS);
       NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, DevilRenderEvent::onRenderDevilBar);
       event.enqueueWork(() -> {
          if (ComputeShaderProvider.supportComputeShader()) {
