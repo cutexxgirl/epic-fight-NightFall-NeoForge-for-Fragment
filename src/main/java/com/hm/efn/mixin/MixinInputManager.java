@@ -10,7 +10,6 @@ import com.p1nero.invincible.attachment.InvincibleAttachments;
 import com.p1nero.invincible.client.InputManager;
 import com.p1nero.invincible.gameassets.InvincibleConditions;
 import com.p1nero.invincible.gameassets.InvincibleSkillDataKeys;
-import com.p1nero.invincible.skill.AbstractInvincibleSkill;
 import com.p1nero.invincible.skill.ComboBasicAttack;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -24,6 +23,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.client.event.ClientTickEvent.Post;
 import org.spongepowered.asm.mixin.Final;
@@ -88,8 +88,7 @@ public abstract class MixinInputManager {
          if (localPlayerPatch != null && shouldHandleInput() && Minecraft.getInstance().getConnection() != null) {
             SkillContainer container = efn$getHandledWeaponInnate(localPlayerPatch);
             if (container == null) {
-               epicFight_Nightfall$efnActiveKeys.clear();
-               epicFight_Nightfall$efnInputBuffer.clear();
+               efn$clearHijackState();
                return;
             }
 
@@ -132,6 +131,8 @@ public abstract class MixinInputManager {
             efn$checkDirectionKeyDown(manager, InvincibleSkillDataKeys.LEFT, options.keyLeft);
             efn$checkDirectionKeyDown(manager, InvincibleSkillDataKeys.RIGHT, options.keyRight);
          }
+      } else {
+         efn$clearHijackState();
       }
    }
 
@@ -140,8 +141,7 @@ public abstract class MixinInputManager {
       if (shouldHandleInput()) {
          LocalPlayerPatch localPlayerPatch = (LocalPlayerPatch)EpicFightCapabilities.getEntityPatch(Minecraft.getInstance().player, LocalPlayerPatch.class);
          if (efn$getHandledWeaponInnate(localPlayerPatch) == null) {
-            epicFight_Nightfall$efnActiveKeys.clear();
-            epicFight_Nightfall$efnInputBuffer.clear();
+            efn$clearHijackState();
             return;
          }
 
@@ -168,7 +168,21 @@ public abstract class MixinInputManager {
       }
 
       SkillContainer container = localPlayerPatch.getSkill(SkillSlots.WEAPON_INNATE);
-      return container != null && container.getSkill() instanceof AbstractInvincibleSkill ? container : null;
+      if (container == null || !(container.getSkill() instanceof ComboBasicAttack)) {
+         return null;
+      }
+
+      ItemStack mainHandItem = localPlayerPatch.getOriginal().getMainHandItem();
+      boolean itemUsesComboBasicAttack = EpicFightCapabilities.getItemCapability(mainHandItem)
+         .map(capabilityItem -> capabilityItem.getInnateSkill(localPlayerPatch, mainHandItem) instanceof ComboBasicAttack)
+         .orElse(false);
+      return itemUsesComboBasicAttack ? container : null;
+   }
+
+   @Unique
+   private static void efn$clearHijackState() {
+      epicFight_Nightfall$efnActiveKeys.clear();
+      epicFight_Nightfall$efnInputBuffer.clear();
    }
 
    @Unique
