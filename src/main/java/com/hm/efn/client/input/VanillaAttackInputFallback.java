@@ -1,9 +1,9 @@
 package com.hm.efn.client.input;
 
 import com.hm.efn.mixin.ControlEngineAccessor;
+import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
 import com.mojang.blaze3d.platform.InputConstants;
-import com.p1nero.invincible.skill.ComboBasicAttack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -105,8 +105,12 @@ public final class VanillaAttackInputFallback {
          return true;
       }
 
-      boolean hasInvincibleComboInnate = capabilityItem.getInnateSkill(playerPatch, heldItem) instanceof ComboBasicAttack;
-      return !hasInvincibleComboInnate || EFNBasicAttackRouting.shouldLetEpicFightBasicAttackRun(playerPatch, capabilityItem);
+      SkillContainer weaponInnate = playerPatch.getSkill(SkillSlots.WEAPON_INNATE);
+      if (weaponInnate != null && weaponInnate.getSkill() instanceof EFNWeaponInnateBase skill && capabilityItem.getInnateSkill(playerPatch, heldItem) == skill) {
+         return EFNBasicAttackRouting.shouldLetEpicFightBasicAttackRun(playerPatch, capabilityItem);
+      }
+
+      return true;
    }
 
    private static boolean isWeaponInnateBoundToVanillaAttack() {
