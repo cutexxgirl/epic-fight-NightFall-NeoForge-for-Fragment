@@ -1,0 +1,21 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.neoforged.net/releases' }
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = 'https://maven.parchmentmc.org' }
+        maven { url = 'https://api.modrinth.com/maven' }
+        maven { url = 'https://cursemaven.com' }
+        maven { url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
+    }
+}
+
+rootProject.name = 'epicfight-nightfall-neoforge'

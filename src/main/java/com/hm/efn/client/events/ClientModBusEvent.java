@@ -1,0 +1,162 @@
+package com.hm.efn.client.events;
+
+import com.hm.efn.client.particle.AirTrailParticle;
+import com.hm.efn.client.particle.ArcCutParticle;
+import com.hm.efn.client.particle.ArcHitParticle;
+import com.hm.efn.client.particle.Block;
+import com.hm.efn.client.particle.BloodBrustParticle;
+import com.hm.efn.client.particle.BloodCutParticle;
+import com.hm.efn.client.particle.BloodHarvestParticle;
+import com.hm.efn.client.particle.BloodHitParticle;
+import com.hm.efn.client.particle.BloomTrailParticle;
+import com.hm.efn.client.particle.EFNEntityAfterimageParticle;
+import com.hm.efn.client.particle.ExpParticle;
+import com.hm.efn.client.particle.FireCutParticle;
+import com.hm.efn.client.particle.FireHitParticle;
+import com.hm.efn.client.particle.FireSlashParticle;
+import com.hm.efn.client.particle.FlashParticle;
+import com.hm.efn.client.particle.HfBladeHitParticle;
+import com.hm.efn.client.particle.MurasamaCutParticle;
+import com.hm.efn.client.particle.MurasamaHitParticle;
+import com.hm.efn.client.particle.NoWeaponEntityAfterimageParticle;
+import com.hm.efn.client.particle.SlashColorParticle;
+import com.hm.efn.client.particle.SlashColorRingParticle;
+import com.hm.efn.client.particle.SlashColorShaderParticle;
+import com.hm.efn.client.particle.SlashParticle;
+import com.hm.efn.client.particle.SlashRingParticle;
+import com.hm.efn.client.particle.TriggerParticle;
+import com.hm.efn.client.particle.YamatoCutParticle_1;
+import com.hm.efn.client.particle.YamatoCutParticle_2;
+import com.hm.efn.client.particle.YamatoFloor;
+import com.hm.efn.client.particle.YamatoHitParticle_1;
+import com.hm.efn.client.particle.YamatoHitParticle_2;
+import com.hm.efn.client.particle.YamatoLastSphere;
+import com.hm.efn.client.particle.YamatoSphere;
+import com.hm.efn.client.particle.DMC.AirWaveParticle;
+import com.hm.efn.client.particle.DMC.JCBladeBlueTrail;
+import com.hm.efn.client.particle.DMC.JCBladeRedTrail;
+import com.hm.efn.client.particle.DMC.JCBladeTrail;
+import com.hm.efn.client.particle.DMC.JudgementCutBlueParticle;
+import com.hm.efn.client.particle.DMC.JudgementCutParticle;
+import com.hm.efn.client.particle.DMC.JudgementCutRedParticle;
+import com.hm.efn.client.particle.DMC.SpaceTrailParticle;
+import com.hm.efn.client.particle.attach.WeaponAttachParticleProvider;
+import com.hm.efn.client.particle.effect.CrimsonSlashParticle;
+import com.hm.efn.client.particle.mortalblade.MortalBladeChargeParticle;
+import com.hm.efn.client.particle.mortalblade.MortalBladeParticle;
+import com.hm.efn.client.particle.parryflash.ParryFlashMainParticle;
+import com.hm.efn.client.particle.parryflash.ParryFlashMainRenderParticle;
+import com.hm.efn.client.particle.sakuraDance.SakuraDanceParticle;
+import com.hm.efn.client.particle.spark.AllSpark;
+import com.hm.efn.client.particle.spark.SparkParticle;
+import com.hm.efn.client.particle.spark.ZandatsuAllSpark;
+import com.hm.efn.client.particle.spark.ZandatsuSparkParticle;
+import com.hm.efn.client.renderer.geoEntity.ExcaliburRender;
+import com.hm.efn.client.renderer.geoEntity.HfBladeChargingRenderer;
+import com.hm.efn.client.renderer.geoEntity.HfBladeSlashRenderer;
+import com.hm.efn.client.renderer.geoEntity.JudgementCutNormalRenderer;
+import com.hm.efn.client.renderer.geoEntity.JudgementCutPerfectRenderer;
+import com.hm.efn.client.renderer.geoEntity.MurasamaChargingRenderer;
+import com.hm.efn.client.renderer.geoEntity.MurasamaSlashRenderer;
+import com.hm.efn.client.renderer.geoEntity.SoulHuntLightningRender;
+import com.hm.efn.entity.EFNEntity;
+import com.hm.efn.particle.EFNParticles;
+import net.minecraft.client.renderer.entity.NoopRenderer;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.world.entity.EntityType;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.EventBusSubscriber.Bus;
+
+@OnlyIn(Dist.CLIENT)
+@EventBusSubscriber(modid = "efn", value = Dist.CLIENT, bus = Bus.MOD)
+public class ClientModBusEvent {
+   @SubscribeEvent(priority = EventPriority.LOWEST)
+   public static void onParticleRegistry(RegisterParticleProvidersEvent event) {
+      event.registerSpriteSet((ParticleType)EFNParticles.CRIMSON_SLASH.get(), CrimsonSlashParticle.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.ARC_HIT.get(), new ArcHitParticle.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.ARC_CUT.get(), ArcCutParticle.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.YAMATO_HIT_1.get(), new YamatoHitParticle_1.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.YAMATO_CUT_1.get(), YamatoCutParticle_1.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.YAMATO_HIT_2.get(), new YamatoHitParticle_2.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.YAMATO_CUT_2.get(), YamatoCutParticle_2.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.MURASAMA_HIT.get(), new MurasamaHitParticle.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.MURASAMA_CUT.get(), MurasamaCutParticle.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.HF_BLADE_HIT.get(), new HfBladeHitParticle.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.HF_BLADE_CUT.get(), MurasamaCutParticle.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.BLOOD_HIT.get(), new BloodHitParticle.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.BLOOD_CUT.get(), BloodCutParticle.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.FIRE_HIT.get(), new FireHitParticle.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.FIRE_CUT.get(), FireCutParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.EXP.get(), ExpParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.SLASH.get(), SlashParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.FIRESLASH.get(), FireSlashParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.FLASH.get(), FlashParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.COLOR_SLASH.get(), SlashColorParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.COLOR_SLASH2.get(), SlashColorShaderParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.COLOR_RING_SLASH.get(), SlashColorRingParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.SLASH_RING.get(), SlashRingParticle.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.EFN_PARRY_FLASH_MAIN.get(), new ParryFlashMainParticle.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.EFN_PARRY_FLASH_MAIN_RENDER.get(), ParryFlashMainRenderParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.NORMAL_SPARK.get(), SparkParticle.NormalDustProvider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.SPARK_CONTRACTILE.get(), SparkParticle.ContractiveDustProvider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.SPARK_EXPANSIVE.get(), SparkParticle.ExpansiveDustProvider::new);
+      event.registerSpecial((ParticleType)EFNParticles.ALL_SPARK.get(), new AllSpark.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.NORMAL_SPARK_ZANDATSU.get(), ZandatsuSparkParticle.NormalDustProvider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.SPARK_CONTRACTILE_ZANDATSU.get(), ZandatsuSparkParticle.ContractiveDustProvider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.SPARK_EXPANSIVE_ZANDATSU.get(), ZandatsuSparkParticle.ExpansiveDustProvider::new);
+      event.registerSpecial((ParticleType)EFNParticles.ALL_SPARK_ZANDATSU.get(), new ZandatsuAllSpark.Provider());
+      event.registerSpriteSet((ParticleType)EFNParticles.MORTAL_BLADE.get(), MortalBladeParticle.MortalBladeProvider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.MORTAL_BLADE_CHARGE_BLACK.get(), MortalBladeChargeParticle.BlackProvider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.MORTAL_BLADE_CHARGE_RED.get(), MortalBladeChargeParticle.RedProvider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.SAKURA_DANCE.get(), SakuraDanceParticle.SakuraDanceProvider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.BLOOM_TRAIL.get(), BloomTrailParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.DMC_JC_BLADE_TRAIL.get(), JCBladeTrail.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.DMC_JC_BLADE_TRAIL_RED.get(), JCBladeRedTrail.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.DMC_JC_BLADE_TRAIL_BLUE.get(), JCBladeBlueTrail.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.AIR_WAVE.get(), AirWaveParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.JUDGEMENT_CUT_PARTICLE.get(), JudgementCutParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.JUDGEMENT_CUT_PARTICLE_RED.get(), JudgementCutRedParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.JUDGEMENT_CUT_PARTICLE_BLUE.get(), JudgementCutBlueParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.SPACE_TRAIL.get(), SpaceTrailParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.YAMATO_SPHERE.get(), YamatoSphere.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.YAMATO_LAST_SPHERE.get(), YamatoLastSphere.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.YAMATO_FLOOR.get(), YamatoFloor.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.BLOCK.get(), Block.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.SOUL_AFTERIMAGE.get(), new EFNEntityAfterimageParticle.SoulAfterImageParticleProvider());
+      event.registerSpriteSet((ParticleType)EFNParticles.AIR_TRAIL.get(), AirTrailParticle.Provider::new);
+      event.registerSpecial((ParticleType)EFNParticles.NOWEAPON_AFTERIMAGE.get(), new NoWeaponEntityAfterimageParticle.NoWeaponWhiteAfterimageProvider());
+      event.registerSpecial((ParticleType)EFNParticles.NOWEAPON_AFTERIMAGE_BLUE.get(), new NoWeaponEntityAfterimageParticle.NoWeaponBlueAfterimageProvider());
+      event.registerSpecial(
+         (ParticleType)EFNParticles.NOWEAPON_AFTERIMAGE_BLUE_SHORT.get(), new NoWeaponEntityAfterimageParticle.NoWeaponShortBlueAfterimageProvider()
+      );
+      event.registerSpecial((ParticleType)EFNParticles.NOWEAPON_AFTERIMAGE_RED.get(), new NoWeaponEntityAfterimageParticle.NoWeaponRedAfterimageProvider());
+      event.registerSpriteSet((ParticleType)EFNParticles.BLOOD_BRUST.get(), BloodBrustParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.BLOOD_HARVEST.get(), BloodHarvestParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.TRIGGER.get(), TriggerParticle.Provider::new);
+      event.registerSpriteSet((ParticleType)EFNParticles.WEAPON_ATTACH_EXAMPLE.get(), WeaponAttachParticleProvider::new);
+   }
+
+   @SubscribeEvent
+   public static void registerRenderersEvent(RegisterRenderers event) {
+      event.registerEntityRenderer((EntityType)EFNEntity.SOUL_HUNT_ORB.get(), NoopRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.BLAST_SUMMONED_SWORD.get(), NoopRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.HEAVY_RAIN_SUMMONED_SWORD.get(), NoopRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.DAMOCLES_SWORD.get(), NoopRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.FALCHION_SKILL_AREA.get(), NoopRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.MURASAMA_SLASH.get(), MurasamaSlashRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.MURASAMA_CHARGING.get(), MurasamaChargingRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.HF_BLADE_SLASH.get(), HfBladeSlashRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.HF_BLADE_CHARGING.get(), HfBladeChargingRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.JUDGEMENTCUT_PERFECT.get(), JudgementCutPerfectRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.JUDGEMENTCUT_NORMAL.get(), JudgementCutNormalRenderer::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.SOULHUNT_LIGHTNING.get(), SoulHuntLightningRender::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.EXCALIBUR.get(), ExcaliburRender::new);
+      event.registerEntityRenderer((EntityType)EFNEntity.CRIMSON_SLASH.get(), NoopRenderer::new);
+   }
+}

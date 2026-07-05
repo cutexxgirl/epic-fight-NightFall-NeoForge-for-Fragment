@@ -1,0 +1,10 @@
+{
+  "type": "efn:meenlance",
+  "attributes": {
+    "common": {
+      "armor_negation": 40.0,
+      "impact": 2.9,
+      "max_strikes": 5
+    }
+  }
+}
