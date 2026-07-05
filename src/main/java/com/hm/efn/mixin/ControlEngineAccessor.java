@@ -2,7 +2,10 @@ package com.hm.efn.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
+import yesman.epicfight.api.client.input.action.InputAction;
 import yesman.epicfight.client.events.engine.ControlEngine;
+import yesman.epicfight.skill.SkillSlot;
 
 @Mixin(value = ControlEngine.class, remap = false)
 public interface ControlEngineAccessor {
@@ -14,4 +17,7 @@ public interface ControlEngineAccessor {
 
    @Accessor("attackLightPressToggle")
    void efn$setAttackLightPressToggle(boolean value);
+
+   @Invoker("reserveKey")
+   void efn$invokeReserveKey(SkillSlot skillSlot, InputAction inputAction);
 }

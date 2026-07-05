@@ -28,6 +28,7 @@
     "AdrenalineParticleProviderMixin",
     "CameraAccessor",
     "ControlEngineAccessor",
+    "ControlEnginePrimaryAttackMixin",
     "EntitySnapshotMixin",
     "LockonMixin",
     "MixinKeyboardHandler",
