@@ -1,353 +1,348 @@
 # EFN 1.21.1 NeoForge Port Handoff
 
-Дата: 2026-07-05
+Дата: 2026-07-06
 
 ## Цель
 
-Портировать закрытый мод **EpicFight Nightfall 3.4.0** с Minecraft 1.20.1 Forge на **Minecraft 1.21.1 NeoForge 21.1.235**.
+Портировать закрытый мод EpicFight Nightfall 3.4.0 с Minecraft 1.20.1 Forge на Minecraft 1.21.1 NeoForge 21.1.235.
 
-Исходный jar:
-
-```text
-P:\FragmentPorting\EpicFight Nightfall-3.4.0.jar
-```
-
-Текущий рабочий проект:
+Текущий репозиторий порта:
 
 ```text
 P:\FragmentPorting\nightfall-port
 ```
 
-Текущий jar для Prism:
+Ветка:
+
+```text
+dev-0.0.1
+```
+
+Тестовый Prism instance:
+
+```text
+P:\PrismLauncher\instances\test voxy
+```
+
+## Текущий baseline
+
+Состояние после очистки: экспериментальные хуки вокруг ЛКМ, Epic Fight input, Invincible mouse input и временная трассировка удалены. Это не означает, что атаки починены. Это означает, что порт возвращен к более честной базе без моих поздних костылей, которые мешали понять реальную причину.
+
+Удалены/откачены такие временные файлы и регистрации:
+
+```text
+src/main/java/com/hm/efn/client/input/VanillaAttackInputFallback.java
+src/main/java/com/hm/efn/util/EFNBasicAttackRouting.java
+src/main/java/com/hm/efn/util/EFNInputKeyUtil.java
+src/main/java/com/hm/efn/mixin/ComboAttacksTraceMixin.java
+src/main/java/com/hm/efn/mixin/ControlEngineInvoker.java
+src/main/java/com/hm/efn/mixin/ControlEnginePrimaryAttackMixin.java
+src/main/java/com/hm/efn/mixin/EpicFightClientBoundPayloadHandlerMixin.java
+src/main/java/com/hm/efn/mixin/EpicFightDiscreteInputActionTriggerMixin.java
+src/main/java/com/hm/efn/mixin/EpicFightInputManagerMixin.java
+src/main/java/com/hm/efn/mixin/EpicFightServerBoundPayloadHandlerMixin.java
+```
+
+`EFNWeaponInnateBase` возвращен к простой форме, как в декомпилированном Nightfall:
+
+```text
+P:\FragmentPorting\nightfall-port\src\main\java\com\hm\efn\skill\EFNWeaponInnateBase.java
+```
+
+Сборка после очистки проходит:
+
+```powershell
+Set-Location 'P:\FragmentPorting\nightfall-port'
+.\gradlew build
+```
+
+Последний jar, установленный в `test voxy`, совпадает с build-output:
+
+```text
+SHA256: BA41B6CFFAE9F28C86410DB2A654917BB8E1D91B465EC667C923A4FA2493455A
+```
+
+## Где лежит Nightfall
+
+Оригинальный закрытый jar 1.20.1:
+
+```text
+P:\FragmentPorting\EpicFight Nightfall-3.4.0.jar
+```
+
+Декомпилированная версия Nightfall:
+
+```text
+P:\FragmentPorting\decompiled\nightfall-vineflower
+```
+
+Рабочий порт на 1.21.1 NeoForge:
+
+```text
+P:\FragmentPorting\nightfall-port
+```
+
+Собранный jar порта:
+
+```text
+P:\FragmentPorting\nightfall-port\build\libs\efn-neoforge1.21.1-3.4.0-neoforge1.21.1.jar
+```
+
+Установленный jar в Prism:
 
 ```text
 P:\PrismLauncher\instances\test voxy\minecraft\mods\efn-neoforge1.21.1-3.4.0-neoforge1.21.1.jar
 ```
 
-## Зависимости
+## Где лежат исходники зависимостей
 
-Используются версии под 1.21.1 NeoForge:
-
-- Epic Fight: `epic-fight-21.17.3.1-mc1.21.1-neoforge.jar`
-- Epic Fight - Invincible Lib
-- Epic Fight - Avalon: `epic_fight_avalon-neoforge1.21.1-21.12.6.2.jar`
-- AAA Particles: `aaa_particles-neoforge-1.21.1-2.2.0.jar`
-
-Репозитории зависимостей лежат в:
+Epic Fight:
 
 ```text
-P:\FragmentPorting\deps
+P:\FragmentPorting\deps\epicfight-1.20.1
+P:\FragmentPorting\deps\epicfight-1.21.1
 ```
 
-Важно: AAA Particles 2.2.0 подходит для MC 1.21.1 / NeoForge 21.1.235. Его metadata требует `minecraft [1.21, 1.21.2)` и `neoforge [21.1.169,)`. В логах он грузится нормально.
+Важные классы Epic Fight для следующего расследования:
 
-## Команды
+```text
+P:\FragmentPorting\deps\epicfight-1.21.1\src\main\java\yesman\epicfight\client\events\engine\ControlEngine.java
+P:\FragmentPorting\deps\epicfight-1.21.1\src\main\java\yesman\epicfight\api\client\input\InputManager.java
+P:\FragmentPorting\deps\epicfight-1.21.1\src\main\java\yesman\epicfight\client\input\DiscreteInputActionTrigger.java
+```
 
-Сборка:
+Дополнительно после сборки есть распакованный кусок Epic Fight source/runtime рядом с портом:
+
+```text
+P:\FragmentPorting\nightfall-port\build\tmp\epicfight-src
+```
+
+Это build artifact, не источник истины, но удобен для быстрого сравнения с фактически подключенной зависимостью.
+
+Avalon:
+
+```text
+P:\FragmentPorting\deps\avalon-1.20.1
+P:\FragmentPorting\deps\avalon-1.21.1
+```
+
+Invincible:
+
+```text
+P:\FragmentPorting\deps\invincible-1.20.1
+P:\FragmentPorting\deps\invincible-1.21.1
+```
+
+Важные классы Invincible для input/combos:
+
+```text
+P:\FragmentPorting\deps\invincible-1.21.1\src\main\java\com\p1nero\invincible\client\InputManager.java
+P:\FragmentPorting\deps\invincible-1.21.1\src\main\java\com\p1nero\invincible\skill\ComboBasicAttack.java
+P:\FragmentPorting\deps\invincible-1.21.1\src\main\java\com\p1nero\invincible\skill\SimpleCustomInnateSkill.java
+```
+
+## Runtime jars
+
+В тестовом instance `test voxy` сейчас лежат:
+
+```text
+P:\PrismLauncher\instances\test voxy\minecraft\mods\epic-fight-21.17.3.1-mc1.21.1-neoforge.jar
+P:\PrismLauncher\instances\test voxy\minecraft\mods\epic_fight_avalon-neoforge1.21.1-21.12.6.3.jar
+P:\PrismLauncher\instances\test voxy\minecraft\mods\invincible-21.15.8.1-mc1.21.1-neoforge.jar
+```
+
+Локальные jar-библиотеки порта:
+
+```text
+P:\FragmentPorting\nightfall-port\libs\aaa_particles-neoforge-1.21.1-2.2.0.jar
+P:\FragmentPorting\nightfall-port\libs\epic_fight_avalon-neoforge1.21.1-21.12.6.3.jar
+P:\FragmentPorting\nightfall-port\libs\guhaos-vix-1531111-8258354.jar
+P:\FragmentPorting\nightfall-port\libs\invincible-21.15.8.1-mc1.21.1-neoforge.jar
+P:\FragmentPorting\nightfall-port\libs\smartkeyprompts-neoforge-1.21.1-1.1.3.jar
+```
+
+Версия Epic Fight в порте:
+
+```text
+P:\FragmentPorting\nightfall-port\gradle.properties
+epicfight_version=21.17.3.1-mc1.21.1-neoforge
+```
+
+Важно: исходники Invincible 1.21.1 внутри своего `gradle.properties` указывают `epicfight_version=21.15.3-mc1.21.1-neoforge`, а runtime instance и порт используют Epic Fight 21.17.3.1. При следующем расследовании input это расхождение надо держать в голове.
+
+## Build and install
+
+Обычная сборка:
 
 ```powershell
-cd P:\FragmentPorting\nightfall-port
-cmd /c "gradlew.bat --no-daemon clean build --console=plain > build.log 2>&1"
+Set-Location 'P:\FragmentPorting\nightfall-port'
+.\gradlew build
 ```
 
-Копирование jar:
+Чистая сборка:
 
 ```powershell
-Copy-Item -LiteralPath 'P:\FragmentPorting\nightfall-port\build\libs\efn-neoforge1.21.1-3.4.0-neoforge1.21.1.jar' -Destination 'P:\PrismLauncher\instances\test voxy\minecraft\mods\efn-neoforge1.21.1-3.4.0-neoforge1.21.1.jar' -Force
+Set-Location 'P:\FragmentPorting\nightfall-port'
+.\gradlew clean build
 ```
 
-Запуск:
+Копирование jar в `test voxy`:
 
 ```powershell
-Start-Process -FilePath 'P:\PrismLauncher\prismlauncher.exe' -ArgumentList '--launch "test voxy" --world "Новый мир"' -WindowStyle Hidden
+$src = 'P:\FragmentPorting\nightfall-port\build\libs\efn-neoforge1.21.1-3.4.0-neoforge1.21.1.jar'
+$dst = 'P:\PrismLauncher\instances\test voxy\minecraft\mods\efn-neoforge1.21.1-3.4.0-neoforge1.21.1.jar'
+Copy-Item -LiteralPath $src -Destination $dst -Force
 ```
 
-Лог-проверка:
+Проверка, что установлен именно новый jar:
 
 ```powershell
-Select-String -Path 'P:\PrismLauncher\instances\test voxy\minecraft\logs\latest.log' -Pattern '\[ERROR\]|\[FATAL\]|Critical injection failure|Mixin apply for mod voxy|Game crashed|InvalidInjection|Shader|compile|link|Creating Voxy render system|Voxy render system created'
+$src = 'P:\FragmentPorting\nightfall-port\build\libs\efn-neoforge1.21.1-3.4.0-neoforge1.21.1.jar'
+$dst = 'P:\PrismLauncher\instances\test voxy\minecraft\mods\efn-neoforge1.21.1-3.4.0-neoforge1.21.1.jar'
+Get-FileHash -Algorithm SHA256 -LiteralPath $src, $dst
+Get-Item -LiteralPath $src, $dst | Select-Object FullName, Length, LastWriteTime
 ```
 
-Расширенная проверка:
+Логи Minecraft:
+
+```text
+P:\PrismLauncher\instances\test voxy\minecraft\logs\latest.log
+P:\PrismLauncher\instances\test voxy\minecraft\crash-reports
+```
+
+Быстрая проверка ошибок:
 
 ```powershell
-Select-String -Path 'P:\PrismLauncher\instances\test voxy\minecraft\logs\latest.log' -Pattern '\[ERROR\]|\[FATAL\]|Game crashed|ClassCastException|FriendlyByteBuf|RegistryFriendlyByteBuf|PacketBufferCodec|LongPressKeyHandler|Cannot invoke|NullPointerException|Unable to load model|Datapack animation reading failed|Item Capability Exception|Creating Voxy render system|Voxy render system created' | Select-Object -Last 800
+Select-String -Path 'P:\PrismLauncher\instances\test voxy\minecraft\logs\latest.log' -Pattern '\[ERROR\]|\[FATAL\]|Game crashed|Crash|Exception|InvalidInjection|Critical injection failure|Cannot invoke|ClassCastException|NullPointerException' | Select-Object -Last 300
 ```
 
-## Что уже исправлено
+## Что не делать снова
 
-### AAA warning
+Не чинить обычную атаку Epic Fight через широкий перехват `InputEvent.MouseButton.Pre`, ручной вызов приватных методов `ControlEngine`, миксины в `DiscreteInputActionTrigger` или искусственную отправку `SkillCastEvent` из EFN. Эта линия уже привела к тому, что Nightfall и обычный Epic Fight начали ломать друг друга, а mouse button 4 вел себя иначе, чем клавиши клавиатуры.
 
-Старое предупреждение про AAA Particles было размыто блюром, потому что экран использовал `renderMenuBackground`. Исправлено в:
+## Какие input-хуки остались
+
+В проекте все еще есть старые input-mixin из initial port. Они не удалены этим cleanup-коммитом, потому что могут быть нужны Nightfall-комбо поверх Invincible:
 
 ```text
-src/main/java/com/hm/efn/client/gui/FirstLaunchWarningScreen.java
+src/main/java/com/hm/efn/mixin/MixinInputManager.java
+src/main/java/com/hm/efn/mixin/MixinKeyMapping.java
+src/main/java/com/hm/efn/mixin/MixinKeyboardHandler.java
+src/main/java/com/hm/efn/mixin/MixinMouseHandler.java
+src/main/java/com/hm/efn/mixin/MouseHandlerMixin.java
+src/main/java/com/hm/efn/client/input/LongPressKeyHandler.java
 ```
 
-Теперь фон рисуется обычными темными `fill`, без blur.
+Особенно подозрителен `MixinInputManager`: он отменяет части `com.p1nero.invincible.client.InputManager` для weapon innate, если skill/item используют `ComboBasicAttack`. Это уже не поздний LКM-fallback, но именно его надо проверять следующим, если обычный Epic Fight или Nightfall input снова конфликтуют.
 
-Также `EFNClientConfig.setAAAWarningShown()` теперь сначала пишет marker-file и не падает, если NeoForge config еще не готов.
+Следующая попытка должна идти от источников:
 
-### Config spec crash
+1. Сравнить `ControlEngine.maybeAttack` и `handleSeparateWeaponInnateSkill` в Epic Fight 1.21.1.
+2. Сравнить `com.p1nero.invincible.client.InputManager` с тем, как EFN ожидает combo packets.
+3. Проверить, не конфликтуют ли бинды `EpicFightInputAction.ATTACK`, `EpicFightInputAction.WEAPON_INNATE_SKILL`, vanilla `keyAttack` и Invincible input packets.
+4. Проверить разницу поведения мышиных кнопок и клавиатуры в Invincible `onVanillaMouseOrKeyInput`.
+5. Если нужен patch, делать его минимально и желательно в одном месте, где реально находится несовместимость, а не на входе всех mouse events.
 
-Был crash вида:
+## Известные рабочие области
+
+Модели оружия после предыдущих фиксов отображались корректно в руках.
+
+Трейлы были видны.
+
+Краш на обычный ЛКМ после части VFX/input правок уходил, но дальше выяснилось, что обычный Epic Fight attack не работает корректно, а вместо обычной атаки часто уходит charged/weapon innate путь. Поэтому input-правки очищены.
+
+Часть VFX была стабилизирована, включая lifetime для проблемных эффектов. Коммит `2a2e023 Guard AAA particle cleanup during world load` оставлен.
+
+Предметы/броня должны иметь ограничение stack size через текущие item classes. Это надо перепроверить в игре после очистки input.
+
+## Следующие точки расследования
+
+Проверить в игре на чистом baseline:
 
 ```text
-Cannot get config value before spec is built
+1. Survival: обычное оружие Epic Fight, ЛКМ, короткое нажатие.
+2. Survival: обычное оружие Epic Fight, удержание ЛКМ.
+3. Survival: Nightfall weapon, короткое ЛКМ.
+4. Survival: Nightfall weapon, weapon innate на клавиатуре.
+5. Survival: Nightfall weapon, weapon innate на mouse button 4.
+6. Creative: те же пункты, только для сравнения.
 ```
 
-Исправлено переносом `SPEC = BUILDER.build()` в конец static init:
+Если survival и creative расходятся, смотреть не "креатив маскирует", а конкретно условия:
 
 ```text
-src/main/java/com/hm/efn/EFNClientConfig.java
-src/main/java/com/hm/efn/EFNCommonConfig.java
+LocalPlayerPatch.canPlayAttackAnimation()
+SkillContainer.canUse(...)
+ComboBasicAttack.checkExecuteCondition(...)
+player.getAbilities().instabuild
+cooldown/attack strength
+current holding action in ControlEngine
 ```
 
-### Skill data registry
-
-Был crash:
+Для VFX:
 
 ```text
-DeferredHolder{ResourceKey[epicfight:skill_data_keys / efn:is_charging]} is unregistered
+src/main/java/com/guhao/vix/particles
+src/main/java/com/hm/efn/client/effek
+src/main/java/com/hm/efn/client/particle
+src/main/java/com/hm/efn/entity/effect
 ```
 
-Причина: EFN создавал DeferredRegister старым способом через `ResourceLocation("epicfight", "skill_data_keys")`.
-
-Исправлено в:
+Для item stack size:
 
 ```text
-src/main/java/com/hm/efn/gameasset/EFNSKillDataKeys.java
+src/main/java/com/hm/efn/item
+src/main/java/com/hm/efn/item/custom
+src/main/java/com/hm/efn/item/geo
 ```
 
-Теперь:
-
-```java
-DeferredRegister.create(EpicFightRegistries.SKILL_DATA_KEY, "efn")
-```
-
-После этого EpicFight начал видеть EFN data keys.
-
-### RuinsGreatSword static animation crash
-
-Был crash:
+Для capabilities and movesets:
 
 ```text
-RuinsGreatSwordInnate.FULL_CHARGE_ANIM is null
-```
-
-Причина: skill class кэшировал `EFNGreatSwordAnimations.*` в `private static final` до того, как `EFNAnimations.build(...)` заполнял accessors.
-
-Исправлено в:
-
-```text
-src/main/java/com/hm/efn/skill/weapon_innate/RuinsGreatSwordInnate.java
-```
-
-Static-кэш заменен на lazy getters, добавлены null-safe проверки и helpers для `IS_CHARGING`, `IS_PRESSING`, `CHARGE_TICKS`.
-
-### PacketBufferCodec crash на ЛКМ
-
-Был crash при ЛКМ:
-
-```text
-ClassCastException: FriendlyByteBuf cannot be cast to RegistryFriendlyByteBuf
-at com.hm.efn.compat.epicfight.utils.PacketBufferCodec.encode(PacketBufferCodec.java:7)
-at yesman.epicfight.skill.SkillDataKey.encode(SkillDataKey.java:37)
-at LongPressKeyHandler.syncKeyData(...)
-```
-
-Исправлено в:
-
-```text
-src/main/java/com/hm/efn/compat/epicfight/utils/PacketBufferCodec.java
-```
-
-Интерфейс теперь `StreamCodec<ByteBuf, T>`, а не `StreamCodec<RegistryFriendlyByteBuf, T>`. Для старых методов используется wrapper `new FriendlyByteBuf(buf)`.
-
-После этого конкретный `FriendlyByteBuf` crash в логах больше не появился.
-
-### MeenLance static animation crash
-
-Последний проверенный runtime crash после codec-патча:
-
-```text
-MeenLanceInnate.FULL_CHARGE_ANIM is null
-```
-
-Внесена аналогичная правка в:
-
-```text
-src/main/java/com/hm/efn/skill/weapon_innate/MeenLanceInnate.java
-```
-
-Важно: эта последняя правка была внесена, но еще не прогонялась сборкой/запуском после решения завершить текущий чат.
-
-## Текущее состояние
-
-Игра доходит до мира, Voxy render system создается:
-
-```text
-Creating Voxy render system
-Voxy render system created
-```
-
-Но боевка EFN еще не рабочая:
-
-- ЛКМ не дает атаки.
-- При смене/использовании другого оружия ловятся похожие проблемы.
-- Вероятно, проблема системная для weapon innate/passive классов, а не только для одного оружия.
-
-В логах также есть повторяющийся EpicFight client feedback NPE:
-
-```text
-Cannot invoke "yesman.epicfight.skill.Skill.executeOnClient(...)"
-because SkillContainer.getSkill() is null
-```
-
-Это может объяснять отсутствие атаки на ЛКМ: клиент/сервер синхронизирует feedback для слота, где skill не установлен. Нужно проверить регистрацию EFN skills, item capabilities и datapack combo/weapon capability binding.
-
-## Главные следующие задачи
-
-1. Собрать после последней правки `MeenLanceInnate`.
-
-2. Прогнать запуск и проверить, исчез ли:
-
-```text
-MeenLanceInnate.FULL_CHARGE_ANIM is null
-```
-
-3. Системно найти все ранние static animation caches:
-
-```powershell
-rg -n "private static final AnimationAccessor|static final AnimationAccessor|AnimationAccessor<\\? extends .* = EFN" src\main\java\com\hm\efn\skill
-```
-
-Особенно уже видно:
-
-```text
-src/main/java/com/hm/efn/skill/weapon_innate/YamatoInnate.java
-```
-
-Там такие же поля:
-
-```java
-JUDGECUT_ANIM = EFNYamatoAnimations.YAMATO_JUDEMENCUT_ALL
-QUICK_ANIM = EFNYamatoAnimations.YAMATO_JUDEMENCUT
-JUST_ANIM = EFNYamatoAnimations.YAMATO_JUDEMENCUT_JUST
-CHARGE_ANIM = EFNYamatoAnimations.YAMATO_JUDEMENCUT_CHARGE
-```
-
-Их нужно перевести на lazy getters/null-safe comparison, как в RuinsGreatSword/MeenLance.
-
-4. Разобрать `SkillContainer.getSkill() is null`.
-
-Начать с:
-
-```text
-src/main/java/com/hm/efn/gameasset/EFNSkills.java
-src/main/java/com/hm/efn/gameasset/combos/*.java
 src/main/java/com/hm/efn/gameasset/EFNWeaponCapabilityPresets.java
-src/main/java/com/hm/efn/compat/epicfight/forgeevent/SkillBuildEvent.java
+src/main/java/com/hm/efn/gameasset/EFNSkills.java
+src/main/java/com/hm/efn/gameasset/combos
+src/main/resources/data/efn/epicfight
 ```
 
-Сравнивать с EpicFight/Invincible/Avalon 1.21.1 registry patterns.
+## Полезные команды поиска
 
-5. Проверить item capability binding. В логах есть:
+Проверить, что временные input-хуки не вернулись:
 
-```text
-Item Capability Exception: No item named efn:scythe
-Pulling epicfight:greatsword from register
+```powershell
+rg -n "VanillaAttackInputFallback|EFNBasicAttackRouting|EFNInputKeyUtil|ControlEngineInvoker|EpicFight.*Input|ComboAttacksTrace|EFN/InputTrace" src/main/java src/main/resources/efn.mixins.json
 ```
 
-Если capabilities не мапятся на EFN items, EpicFight может не ставить нужный innate skill, и ЛКМ будет пустой.
+Найти static animation caches:
 
-6. Починить модели предметов.
-
-Сейчас Minecraft не находит обычные item model json для части зарегистрированных предметов:
-
-```text
-efn:models/item/crescent_moon_e.json
-efn:models/item/meen_spear_e.json
-efn:models/item/fire_exsiliumgladius_e.json
-efn:models/item/crimson_moon_e.json
-efn:models/item/arc_tachi.json
-efn:models/item/nf_shortsword_2_e.json
-efn:models/item/nf_shortsword_e.json
-efn:models/item/flag_bearer_e.json
-efn:models/item/exsiliumgladius_e.json
-efn:models/item/flag_bearer.json
-efn:models/item/air_tachi_e.json
+```powershell
+rg -n "private static final AnimationAccessor|static final AnimationAccessor|= EFN.*Animations" src/main/java/com/hm/efn/skill
 ```
 
-Для base variants json есть, для `_e` variants часто нет. Можно временно создать vanilla generated item models, указывающие на существующие текстуры, чтобы убрать missing model. Для 3D held model нужно отдельно проверить Avalon `item_skins`.
+Найти ручные input bridges:
 
-Пример существующего item skin:
-
-```text
-src/main/resources/assets/efn/item_skins/ruinsgreatsword.json
+```powershell
+rg -n "InputEvent.MouseButton|InputEvent.Key|sendCastRequest|SkillCastEvent|reserveKey|consumeClick|isLeftPressed|isBoundToSamePhysicalInput" src/main/java
 ```
 
-Он использует:
+Проверить mixin config:
 
-```json
-"renderer": "epic_fight_avalon:mesh_item",
-"mesh_main": "efn:weapon/ruinsgreatsword"
+```powershell
+Get-Content -LiteralPath 'P:\FragmentPorting\nightfall-port\src\main\resources\efn.mixins.json'
 ```
 
-Если 3D модель не подтягивается, смотреть Avalon mesh item loader и путь `assets/efn/item_skins/*.json`.
+## Git
 
-7. Разобрать ошибки datapack animations:
+Перед пушем:
 
-```text
-Datapack animation reading failed: No constructor information has provided: efn:...
+```powershell
+git status --short --branch
+git diff --cached --stat
+.\gradlew build
 ```
 
-Это может быть несовместимость формата animation json с EpicFight 1.21.1 или недостающая регистрация custom animation constructors из Avalon/EFN.
+Пуш:
 
-## Важные текущие подозрения
-
-### Не единичный баг оружия
-
-Похоже, что почти все оружие EFN может страдать от одной из трех системных проблем:
-
-- ранний static-кэш animation accessors до `EFNAnimations.build(...)`;
-- item capabilities/combos не привязались к registered EFN items;
-- EpicFight skill feedback приходит в пустой SkillContainer.
-
-### ЛКМ
-
-`FriendlyByteBuf` crash на ЛКМ уже исправлен, но атака все еще не происходит. Следующий фокус: почему basic attack или weapon innate skill не назначается в EpicFight item capability.
-
-### Модели
-
-Визуально "3D модель не подтянулась" может иметь две разные причины:
-
-- vanilla item model json отсутствует, поэтому item broken/missing;
-- Avalon mesh item renderer не видит `item_skins` или mesh path.
-
-Нужно отделить inventory model от held/combat model.
-
-## Измененные файлы в этом этапе
-
-```text
-src/main/java/com/hm/efn/EFNClientConfig.java
-src/main/java/com/hm/efn/EFNCommonConfig.java
-src/main/java/com/hm/efn/client/gui/FirstLaunchWarningScreen.java
-src/main/java/com/hm/efn/gameasset/EFNSKillDataKeys.java
-src/main/java/com/hm/efn/compat/epicfight/utils/PacketBufferCodec.java
-src/main/java/com/hm/efn/skill/weapon_innate/RuinsGreatSwordInnate.java
-src/main/java/com/hm/efn/skill/weapon_innate/MeenLanceInnate.java
+```powershell
+git push origin dev-0.0.1
 ```
-
-Также раньше в проект уже были добавлены legacy compatibility/facade классы для EpicFight/VIX/Avalon. Не откатывать их без проверки.
-
-## Минимальный старт в новом чате
-
-1. Открыть этот файл.
-2. Выполнить сборку.
-3. Скопировать jar в Prism mods.
-4. Запустить мир.
-5. Смотреть последний crash.
-6. Если следующий crash снова `SOME_ANIM is null`, чинить такой же lazy-getter схемой.
-7. Если null-анимации ушли, заняться `SkillContainer.getSkill() is null` и item capabilities.
-
