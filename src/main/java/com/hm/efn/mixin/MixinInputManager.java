@@ -1,5 +1,7 @@
 package com.hm.efn.mixin;
 
+import com.hm.efn.skill.EFNWeaponInnateBase;
+import com.hm.efn.util.EFNBasicAttackRouting;
 import com.p1nero.invincible.InvincibleConfig;
 import com.google.common.collect.BiMap;
 import com.p1nero.invincible.api.Side;
@@ -168,15 +170,17 @@ public abstract class MixinInputManager {
       }
 
       SkillContainer container = localPlayerPatch.getSkill(SkillSlots.WEAPON_INNATE);
-      if (container == null || !(container.getSkill() instanceof ComboBasicAttack)) {
+      if (container == null || !(container.getSkill() instanceof EFNWeaponInnateBase skill)) {
          return null;
       }
 
       ItemStack mainHandItem = localPlayerPatch.getOriginal().getMainHandItem();
-      boolean itemUsesComboBasicAttack = EpicFightCapabilities.getItemCapability(mainHandItem)
-         .map(capabilityItem -> capabilityItem.getInnateSkill(localPlayerPatch, mainHandItem) instanceof ComboBasicAttack)
+      boolean itemUsesHandledEfnInnate = EpicFightCapabilities.getItemCapability(mainHandItem)
+         .filter(capabilityItem -> !capabilityItem.isEmpty())
+         .filter(capabilityItem -> capabilityItem.getInnateSkill(localPlayerPatch, mainHandItem) == skill)
+         .map(capabilityItem -> !EFNBasicAttackRouting.shouldLetEpicFightBasicAttackRun(localPlayerPatch, capabilityItem))
          .orElse(false);
-      return itemUsesComboBasicAttack ? container : null;
+      return itemUsesHandledEfnInnate ? container : null;
    }
 
    @Unique
@@ -294,6 +298,10 @@ public abstract class MixinInputManager {
    private static void efn$checkDirectionKeyDown(
       SkillDataManager manager, DeferredHolder<yesman.epicfight.skill.SkillDataKey<?>, ? extends yesman.epicfight.skill.SkillDataKey<Boolean>> skillDataKey, KeyMapping key
    ) {
+      if (!manager.hasData(skillDataKey)) {
+         return;
+      }
+
       if ((Boolean)manager.getDataValue(skillDataKey) != key.isDown()) {
          manager.setDataSync(skillDataKey, key.isDown());
       }

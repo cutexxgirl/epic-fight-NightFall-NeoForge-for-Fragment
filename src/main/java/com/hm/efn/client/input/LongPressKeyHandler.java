@@ -3,12 +3,14 @@ package com.hm.efn.client.input;
 import com.hm.efn.client.input.keymapping.EFNKeyMappings;
 import com.hm.efn.gameasset.EFNSKillDataKeys;
 import com.hm.efn.skill.EFNWeaponInnateBase;
+import com.hm.efn.util.EFNBasicAttackRouting;
 import com.p1nero.invincible.client.InvincibleKeyMappings;
 import java.util.Arrays;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.client.event.InputEvent.Key;
@@ -53,11 +55,13 @@ public class LongPressKeyHandler {
             if (player != null) {
                LocalPlayerPatch localPlayerPatch = (LocalPlayerPatch)EpicFightCapabilities.getEntityPatch(player, LocalPlayerPatch.class);
                if (localPlayerPatch != null) {
-                  SkillContainer container = localPlayerPatch.getSkill(SkillSlots.WEAPON_INNATE);
-                  if (container != null && container.getSkill() instanceof EFNWeaponInnateBase) {
+                  SkillContainer container = getHandledEfnInnate(localPlayerPatch);
+                  if (container != null) {
                      SkillDataManager manager = container.getDataManager();
                      handleKeyInput(manager, keyCode, action);
                      handleConditionKeyInput(manager, keyCode, action);
+                  } else {
+                     resetTrackedState();
                   }
                }
             }
@@ -72,9 +76,11 @@ public class LongPressKeyHandler {
          if (player != null) {
             LocalPlayerPatch localPlayerPatch = (LocalPlayerPatch)EpicFightCapabilities.getEntityPatch(player, LocalPlayerPatch.class);
             if (localPlayerPatch != null) {
-               SkillContainer container = localPlayerPatch.getSkill(SkillSlots.WEAPON_INNATE);
-               if (container != null && container.getSkill() instanceof EFNWeaponInnateBase) {
+               SkillContainer container = getHandledEfnInnate(localPlayerPatch);
+               if (container != null) {
                   updateKeyTimers(container.getDataManager());
+               } else {
+                  resetTrackedState();
                }
             }
          }
@@ -160,8 +166,12 @@ public class LongPressKeyHandler {
                return;
             }
 
+            if (!manager.hasData(dataKey)) {
+               return;
+            }
+
             boolean isDown = action != 0;
-            if (!manager.hasData(dataKey) || (Boolean)manager.getDataValue(dataKey) != isDown) {
+            if ((Boolean)manager.getDataValue(dataKey) != isDown) {
                manager.setDataSync(dataKey, isDown);
             }
          }
@@ -209,6 +219,27 @@ public class LongPressKeyHandler {
       return manager.hasData(LongPressKeyHandler.KeySuppliers.PRESS[index])
          && manager.hasData(LongPressKeyHandler.KeySuppliers.TIMER[index])
          && manager.hasData(LongPressKeyHandler.KeySuppliers.LONG_PRESS[index]);
+   }
+
+   private static SkillContainer getHandledEfnInnate(LocalPlayerPatch localPlayerPatch) {
+      SkillContainer container = localPlayerPatch.getSkill(SkillSlots.WEAPON_INNATE);
+      if (container == null || !(container.getSkill() instanceof EFNWeaponInnateBase skill)) {
+         return null;
+      }
+
+      ItemStack mainHandItem = localPlayerPatch.getOriginal().getMainHandItem();
+      return EpicFightCapabilities.getItemCapability(mainHandItem)
+         .filter(capabilityItem -> !capabilityItem.isEmpty())
+         .filter(capabilityItem -> capabilityItem.getInnateSkill(localPlayerPatch, mainHandItem) == skill)
+         .filter(capabilityItem -> !EFNBasicAttackRouting.shouldLetEpicFightBasicAttackRun(localPlayerPatch, capabilityItem))
+         .map(capabilityItem -> container)
+         .orElse(null);
+   }
+
+   private static void resetTrackedState() {
+      Arrays.fill(physicalPressed, false);
+      Arrays.fill(pressTicks, 0);
+      Arrays.fill(keyStates, LongPressKeyHandler.KeyState.RELEASED);
    }
 
    public static boolean isKeyPressed(int index) {
