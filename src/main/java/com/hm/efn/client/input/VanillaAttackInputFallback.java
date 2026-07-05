@@ -58,24 +58,15 @@ public final class VanillaAttackInputFallback {
          if (trackingAttackPress) {
             event.setCanceled(true);
             drainPendingAttackClicks();
-            clearSameKeyAttackState(ControlEngine.getInstance());
-            ControlEngine.setKeyBind(EpicFightKeyMappings.ATTACK, false);
-            ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
+            primeEpicFightSameKeyAttack(ControlEngine.getInstance());
          }
       } else if (event.getAction() == InputConstants.RELEASE) {
          if (trackingAttackPress) {
             event.setCanceled(true);
             int heldTicks = Math.max(1, getPlayerTick() - attackPressStartTick);
             trace("release heldTicks={} longPressTriggered={}", heldTicks, longPressTriggered);
-            if (longPressTriggered) {
-               ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
-            } else if (heldTicks <= ClientConfig.holdingThreshold + 1 && shouldUseFallback("release-short")) {
-               drainPendingAttackClicks();
-               requestComboAttack();
-            } else {
-               requestWeaponInnate();
-               ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
-            }
+            ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
+            trace("release handed to epicfight same-key router heldTicks={}", heldTicks);
          }
 
          trackingAttackPress = false;
@@ -84,10 +75,7 @@ public final class VanillaAttackInputFallback {
    }
 
    public static void onClientTick(Post event) {
-      if (trackingAttackPress && !longPressTriggered && getPlayerTick() - attackPressStartTick > ClientConfig.holdingThreshold && shouldUseFallback("hold-threshold")) {
-         drainPendingAttackClicks();
-         longPressTriggered = requestWeaponInnate();
-      }
+      // The active press is handled by Epic Fight's own same-key attack/innate router.
    }
 
    public static boolean shouldSuppressSeparateWeaponInnate() {
@@ -221,6 +209,21 @@ public final class VanillaAttackInputFallback {
          skillName(comboAttacks),
          player.isCreative(),
          player.isSpectator()
+      );
+   }
+
+   private static void primeEpicFightSameKeyAttack(ControlEngine controlEngine) {
+      ControlEngineAccessor accessor = (ControlEngineAccessor)controlEngine;
+      clearSameKeyAttackState(controlEngine);
+      ControlEngine.setKeyBind(EpicFightKeyMappings.ATTACK, false);
+      ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, true);
+      accessor.efn$setWeaponInnatePressToggle(true);
+      accessor.efn$setWeaponInnatePressCounter(0);
+      trace(
+         "press primed epicfight same-key router attackKey={} innateKey={} threshold={}",
+         EpicFightKeyMappings.ATTACK.getKey(),
+         EpicFightKeyMappings.WEAPON_INNATE_SKILL.getKey(),
+         ClientConfig.holdingThreshold
       );
    }
 
