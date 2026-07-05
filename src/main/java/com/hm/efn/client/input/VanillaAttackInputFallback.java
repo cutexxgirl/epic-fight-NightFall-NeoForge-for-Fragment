@@ -61,19 +61,17 @@ public final class VanillaAttackInputFallback {
          if (trackingAttackPress) {
             event.setCanceled(true);
             drainPendingAttackClicks();
-            primeEpicFightSameKeyAttack(ControlEngine.getInstance());
+            requestComboAttack();
          }
       } else if (event.getAction() == InputConstants.RELEASE) {
          if (trackingAttackPress) {
             event.setCanceled(true);
             int heldTicks = Math.max(1, getPlayerTick() - attackPressStartTick);
             trace("release heldTicks={} longPressTriggered={}", heldTicks, longPressTriggered);
-            if (heldTicks <= ClientConfig.holdingThreshold + 1 && shouldUseFallback("release-short")) {
-               requestComboAttack();
-            } else {
-               ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
-               trace("release handed to epicfight same-key router heldTicks={}", heldTicks);
-            }
+            ControlEngine.setKeyBind(EpicFightKeyMappings.ATTACK, false);
+            ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
+            clearSameKeyAttackState(ControlEngine.getInstance());
+            trace("release finished direct standard attack route heldTicks={}", heldTicks);
          }
 
          trackingAttackPress = false;
