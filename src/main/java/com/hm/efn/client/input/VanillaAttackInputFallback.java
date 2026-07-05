@@ -1,5 +1,6 @@
 package com.hm.efn.client.input;
 
+import com.hm.efn.mixin.ControlEngineAccessor;
 import com.hm.efn.util.EFNBasicAttackRouting;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.p1nero.invincible.skill.ComboBasicAttack;
@@ -44,7 +45,7 @@ public final class VanillaAttackInputFallback {
       } else if (event.getAction() == InputConstants.RELEASE) {
          if (trackingAttackPress) {
             int heldTicks = Math.max(1, getPlayerTick() - attackPressStartTick);
-            if (heldTicks <= ClientConfig.holdingThreshold + 1 && shouldUseFallback() && !ControlEngine.getInstance().weaponInnateToggling()) {
+            if (heldTicks <= ClientConfig.holdingThreshold + 1 && shouldUseFallback()) {
                drainPendingAttackClicks();
                requestComboAttack();
             }
@@ -115,11 +116,20 @@ public final class VanillaAttackInputFallback {
       }
 
       ControlEngine controlEngine = ControlEngine.getInstance();
+      clearSameKeyAttackState(controlEngine);
       SkillCastEvent skillCastEvent = comboAttacks.sendCastRequest(playerPatch, controlEngine);
       if (skillCastEvent.isExecutable()) {
          player.resetAttackStrengthTicker();
          controlEngine.releaseAllServedKeys();
          controlEngine.lockHotkeys();
       }
+      clearSameKeyAttackState(controlEngine);
+   }
+
+   private static void clearSameKeyAttackState(ControlEngine controlEngine) {
+      ControlEngineAccessor accessor = (ControlEngineAccessor)controlEngine;
+      accessor.efn$setWeaponInnatePressToggle(false);
+      accessor.efn$setAttackLightPressToggle(false);
+      accessor.efn$setWeaponInnatePressCounter(0);
    }
 }

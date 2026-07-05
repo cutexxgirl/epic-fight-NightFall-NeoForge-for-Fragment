@@ -27,6 +27,7 @@
   "client": [
     "AdrenalineParticleProviderMixin",
     "CameraAccessor",
+    "ControlEngineAccessor",
     "EntitySnapshotMixin",
     "LockonMixin",
     "MixinKeyboardHandler",
