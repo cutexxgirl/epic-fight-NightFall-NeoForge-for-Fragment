@@ -6,7 +6,12 @@ import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
 import com.hm.efn.util.EFNInputKeyUtil;
 import com.p1nero.invincible.client.InvincibleKeyMappings;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -20,6 +25,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent.Post;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import org.lwjgl.glfw.GLFW;
 import yesman.epicfight.client.input.EpicFightKeyMappings;
 import yesman.epicfight.client.world.capabilites.entitypatch.player.LocalPlayerPatch;
 import yesman.epicfight.skill.SkillContainer;
@@ -35,6 +41,7 @@ public class LongPressKeyHandler {
    private static final boolean[] physicalPressed = new boolean[5];
    private static final int[] pressTicks = new int[5];
    private static final LongPressKeyHandler.KeyState[] keyStates = new LongPressKeyHandler.KeyState[5];
+   private static final Map<Integer, Boolean> polledMouseButtons = new HashMap<>();
    private static final KeyMapping[] MAPPINGS = new KeyMapping[]{
       InvincibleKeyMappings.KEY1, InvincibleKeyMappings.KEY2, InvincibleKeyMappings.KEY3, InvincibleKeyMappings.KEY4, EpicFightKeyMappings.WEAPON_INNATE_SKILL
    };
@@ -61,6 +68,7 @@ public class LongPressKeyHandler {
                      SkillDataManager manager = container.getDataManager();
                      handleKeyInput(manager, mouseInput, keyCode, action);
                      handleConditionKeyInput(manager, mouseInput, keyCode, action);
+                     rememberMouseInput(mouseInput, keyCode, action);
                   } else {
                      resetTrackedState();
                   }
@@ -79,7 +87,9 @@ public class LongPressKeyHandler {
             if (localPlayerPatch != null) {
                SkillContainer container = getHandledEfnInnate(localPlayerPatch);
                if (container != null) {
-                  updateKeyTimers(container.getDataManager());
+                  SkillDataManager manager = container.getDataManager();
+                  pollMouseInputs(manager);
+                  updateKeyTimers(manager);
                } else {
                   resetTrackedState();
                }
@@ -163,6 +173,59 @@ public class LongPressKeyHandler {
       checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.UP_KEY, options.keyUp);
       checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.DOWN_KEY, options.keyDown);
       checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.SNEAK_KEY, options.keyShift);
+   }
+
+   private static void pollMouseInputs(SkillDataManager manager) {
+      Minecraft minecraft = Minecraft.getInstance();
+      if (minecraft.screen != null || minecraft.getWindow() == null) {
+         return;
+      }
+
+      Set<Integer> buttons = new HashSet<>();
+      for (KeyMapping mapping : MAPPINGS) {
+         addPolledMouseButton(buttons, mapping);
+      }
+
+      Options options = minecraft.options;
+      addPolledMouseButton(buttons, EFNKeyMappings.DEMON);
+      addPolledMouseButton(buttons, EFNKeyMappings.ANGEL);
+      addPolledMouseButton(buttons, EFNKeyMappings.SUMMONED_SWORD);
+      addPolledMouseButton(buttons, EpicFightKeyMappings.GUARD);
+      addPolledMouseButton(buttons, options.keySprint);
+      addPolledMouseButton(buttons, options.keyJump);
+      addPolledMouseButton(buttons, options.keyUp);
+      addPolledMouseButton(buttons, options.keyDown);
+      addPolledMouseButton(buttons, options.keyShift);
+
+      long window = minecraft.getWindow().getWindow();
+      for (int button : buttons) {
+         boolean down = GLFW.glfwGetMouseButton(window, button) == GLFW.GLFW_PRESS;
+         Boolean previous = polledMouseButtons.put(button, down);
+         if (previous == null || previous == down) {
+            continue;
+         }
+
+         int action = down ? 1 : 0;
+         handleKeyInput(manager, true, button, action);
+         handleConditionKeyInput(manager, true, button, action);
+      }
+   }
+
+   private static void addPolledMouseButton(Set<Integer> buttons, KeyMapping keyMapping) {
+      if (keyMapping == null || keyMapping.getKey() == null) {
+         return;
+      }
+
+      InputConstants.Key key = keyMapping.getKey();
+      if (key.getType() == InputConstants.Type.MOUSE && key.getValue() >= 2) {
+         buttons.add(key.getValue());
+      }
+   }
+
+   private static void rememberMouseInput(boolean mouseInput, int keyCode, int action) {
+      if (mouseInput && keyCode >= 2 && action != 2) {
+         polledMouseButtons.put(keyCode, action == 1);
+      }
    }
 
    private static void checkAndUpdateKey(
@@ -265,6 +328,7 @@ public class LongPressKeyHandler {
       Arrays.fill(physicalPressed, false);
       Arrays.fill(pressTicks, 0);
       Arrays.fill(keyStates, LongPressKeyHandler.KeyState.RELEASED);
+      polledMouseButtons.clear();
    }
 
    public static boolean isKeyPressed(int index) {

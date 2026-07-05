@@ -30,6 +30,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.client.event.ClientTickEvent.Post;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -61,6 +62,8 @@ public abstract class MixinInputManager {
    private static final Map<ComboType, Integer> epicFight_Nightfall$efnActiveKeys = new HashMap<>();
    @Unique
    private static final Map<ComboType, int[]> epicFight_Nightfall$efnInputBuffer = new HashMap<>();
+   @Unique
+   private static final Map<Integer, Boolean> epicFight_Nightfall$efnPolledMouseButtons = new HashMap<>();
 
    @Shadow(remap = false)
    private static boolean shouldHandleInput() {
@@ -111,6 +114,8 @@ public abstract class MixinInputManager {
                }
             }
 
+            efn$pollMouseComboInputs();
+
             int maxPressTick = getComboBasicSkill() != null ? getComboBasicSkill().getMaxPressTime() : (Integer)InvincibleConfig.MAX_PRESS_TICK.get();
             List<ComboType> keysToBuffer = new ArrayList<>();
             epicFight_Nightfall$efnActiveKeys.replaceAll((comboType, ticks) -> {
@@ -157,6 +162,10 @@ public abstract class MixinInputManager {
 
          ci.cancel();
          boolean mouseInput = efn$isMouseInput(key);
+         if (mouseInput && key >= 2 && action != 2) {
+            epicFight_Nightfall$efnPolledMouseButtons.put(key, action == 1);
+         }
+
          if (action == 1) {
             efn$handlePress(mouseInput, key);
          } else if (action == 0) {
@@ -218,6 +227,37 @@ public abstract class MixinInputManager {
    }
 
    @Unique
+   private static void efn$pollMouseComboInputs() {
+      Minecraft minecraft = Minecraft.getInstance();
+      if (minecraft.getWindow() == null) {
+         return;
+      }
+
+      long window = minecraft.getWindow().getWindow();
+      for (Map.Entry<ComboType, KeyMapping> entry : TYPE_KEY_MAP.entrySet()) {
+         InputConstants.Key key = entry.getValue().getKey();
+         if (key == null || key.getType() != InputConstants.Type.MOUSE || key.getValue() < 2) {
+            continue;
+         }
+
+         int button = key.getValue();
+         boolean down = GLFW.glfwGetMouseButton(window, button) == GLFW.GLFW_PRESS;
+         Boolean previous = epicFight_Nightfall$efnPolledMouseButtons.put(button, down);
+         if (previous == null || previous == down) {
+            continue;
+         }
+
+         if (down) {
+            efn$handlePress(true, button);
+            EFN.LOGGER.info("[EFN/InputTrace] invincible-hijack polled mouse press button={} combo={}", button, entry.getKey());
+         } else if (efn$handleRelease(true, button)) {
+            EFN.LOGGER.info("[EFN/InputTrace] invincible-hijack polled mouse release button={} combo={}", button, entry.getKey());
+            efn$tryRequestSkillExecute();
+         }
+      }
+   }
+
+   @Unique
    private static boolean efn$shouldSuppressInvincibleInput(LocalPlayerPatch localPlayerPatch) {
       if (localPlayerPatch == null) {
          return false;
@@ -260,6 +300,7 @@ public abstract class MixinInputManager {
    private static void efn$clearHijackState() {
       epicFight_Nightfall$efnActiveKeys.clear();
       epicFight_Nightfall$efnInputBuffer.clear();
+      epicFight_Nightfall$efnPolledMouseButtons.clear();
    }
 
    @Unique

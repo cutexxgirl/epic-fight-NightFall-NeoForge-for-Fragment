@@ -28,6 +28,7 @@
   "client": [
     "AdrenalineParticleProviderMixin",
     "CameraAccessor",
+    "ControlEngineInvoker",
     "ControlEnginePrimaryAttackMixin",
     "EpicFightClientBoundPayloadHandlerMixin",
     "EpicFightDiscreteInputActionTriggerMixin",

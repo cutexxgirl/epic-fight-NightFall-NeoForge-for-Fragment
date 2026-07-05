@@ -1,6 +1,7 @@
 package com.hm.efn.client.input;
 
 import com.hm.efn.EFN;
+import com.hm.efn.mixin.ControlEngineInvoker;
 import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -13,6 +14,7 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientTickEvent.Post;
 import net.neoforged.neoforge.client.event.InputEvent.MouseButton.Pre;
+import yesman.epicfight.client.events.engine.ControlEngine;
 import yesman.epicfight.client.input.EpicFightKeyMappings;
 import yesman.epicfight.client.world.capabilites.entitypatch.player.LocalPlayerPatch;
 import yesman.epicfight.skill.Skill;
@@ -66,7 +68,13 @@ public final class VanillaAttackInputFallback {
          }
 
          if (fallbackRoute == FallbackRoute.STANDARD_EPICFIGHT && hasComboAttackSlot) {
-            trace("press left to native epicfight input route={}", fallbackRoute);
+            if (!isEpicFightAttackBoundToVanillaAttack()) {
+               event.setCanceled(true);
+               drainPendingAttackClicks();
+               invokeNativeEpicFightAttack(ControlEngine.getInstance());
+            } else {
+               trace("press left to native epicfight input route={}", fallbackRoute);
+            }
          }
       } else if (event.getAction() == InputConstants.RELEASE) {
          if (trackingAttackPress) {
@@ -167,6 +175,12 @@ public final class VanillaAttackInputFallback {
       return attackKey.getType() == weaponInnateKey.getType() && attackKey.getValue() == weaponInnateKey.getValue();
    }
 
+   private static boolean isEpicFightAttackBoundToVanillaAttack() {
+      InputConstants.Key attackKey = Minecraft.getInstance().options.keyAttack.getKey();
+      InputConstants.Key epicFightAttackKey = EpicFightKeyMappings.ATTACK.getKey();
+      return attackKey.getType() == epicFightAttackKey.getType() && attackKey.getValue() == epicFightAttackKey.getValue();
+   }
+
    private static boolean hasComboAttackSlot() {
       Minecraft minecraft = Minecraft.getInstance();
       LocalPlayerPatch playerPatch = minecraft.player != null ? EpicFightCapabilities.getEntityPatch(minecraft.player, LocalPlayerPatch.class) : null;
@@ -182,6 +196,32 @@ public final class VanillaAttackInputFallback {
    private static int getPlayerTick() {
       LocalPlayer player = Minecraft.getInstance().player;
       return player != null ? player.tickCount : 0;
+   }
+
+   private static void drainPendingAttackClicks() {
+      while (Minecraft.getInstance().options.keyAttack.consumeClick()) {
+      }
+
+      while (EpicFightKeyMappings.ATTACK.consumeClick()) {
+      }
+
+      while (EpicFightKeyMappings.WEAPON_INNATE_SKILL.consumeClick()) {
+      }
+   }
+
+   private static void invokeNativeEpicFightAttack(ControlEngine controlEngine) {
+      if (controlEngine.getPlayerPatch() == null) {
+         trace("press native epicfight attack skipped reason=no-control-engine-playerpatch");
+         return;
+      }
+
+      ((ControlEngineInvoker)controlEngine).efn$invokeMaybeAttack();
+      trace(
+         "press invoked native epicfight attack attackKey={} vanillaKey={} innateKey={}",
+         EpicFightKeyMappings.ATTACK.getKey(),
+         Minecraft.getInstance().options.keyAttack.getKey(),
+         EpicFightKeyMappings.WEAPON_INNATE_SKILL.getKey()
+      );
    }
 
    private static int autoAttackCount(LocalPlayerPatch playerPatch, CapabilityItem capabilityItem) {
