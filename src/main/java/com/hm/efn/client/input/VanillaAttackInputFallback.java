@@ -95,14 +95,19 @@ public final class VanillaAttackInputFallback {
       }
 
       LocalPlayerPatch playerPatch = EpicFightCapabilities.getEntityPatch(minecraft.player, LocalPlayerPatch.class);
-      if (playerPatch == null || !playerPatch.isEpicFightMode() || !playerPatch.canPlayAttackAnimation()) {
+      if (playerPatch == null || !playerPatch.isEpicFightMode()) {
          return false;
       }
 
       ItemStack heldItem = playerPatch.getOriginal().getMainHandItem();
       CapabilityItem capabilityItem = EpicFightCapabilities.getItemStackCapability(heldItem);
+      boolean canPlayAttackAnimation = playerPatch.canPlayAttackAnimation();
+      if (!canPlayAttackAnimation && !hasAutoAttackMotions(playerPatch, capabilityItem)) {
+         return false;
+      }
+
       if (capabilityItem == null || capabilityItem.isEmpty()) {
-         return true;
+         return canPlayAttackAnimation;
       }
 
       SkillContainer weaponInnate = playerPatch.getSkill(SkillSlots.WEAPON_INNATE);
@@ -111,6 +116,11 @@ public final class VanillaAttackInputFallback {
       }
 
       return true;
+   }
+
+   private static boolean hasAutoAttackMotions(LocalPlayerPatch playerPatch, CapabilityItem capabilityItem) {
+      return capabilityItem != null && !capabilityItem.isEmpty() && capabilityItem.getAutoAttackMotion(playerPatch) != null
+         && !capabilityItem.getAutoAttackMotion(playerPatch).isEmpty();
    }
 
    private static boolean isWeaponInnateBoundToVanillaAttack() {
