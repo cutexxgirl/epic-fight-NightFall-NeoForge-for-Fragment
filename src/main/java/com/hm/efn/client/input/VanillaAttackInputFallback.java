@@ -1,7 +1,6 @@
 package com.hm.efn.client.input;
 
 import com.hm.efn.EFN;
-import com.hm.efn.mixin.ControlEngineAccessor;
 import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -14,10 +13,8 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientTickEvent.Post;
 import net.neoforged.neoforge.client.event.InputEvent.MouseButton.Pre;
-import yesman.epicfight.client.events.engine.ControlEngine;
 import yesman.epicfight.client.input.EpicFightKeyMappings;
 import yesman.epicfight.client.world.capabilites.entitypatch.player.LocalPlayerPatch;
-import yesman.epicfight.config.ClientConfig;
 import yesman.epicfight.skill.Skill;
 import yesman.epicfight.skill.SkillContainer;
 import yesman.epicfight.skill.SkillSlots;
@@ -27,6 +24,7 @@ import yesman.epicfight.world.capabilities.item.CapabilityItem;
 public final class VanillaAttackInputFallback {
    private static boolean trackingAttackPress;
    private static int attackPressStartTick;
+   private static FallbackRoute trackingRoute = FallbackRoute.NONE;
 
    private enum FallbackRoute {
       NONE,
@@ -56,33 +54,28 @@ public final class VanillaAttackInputFallback {
       if (event.getAction() == InputConstants.PRESS) {
          FallbackRoute fallbackRoute = getFallbackRoute("press");
          boolean hasComboAttackSlot = hasComboAttackSlot();
-         trackingAttackPress = fallbackRoute == FallbackRoute.EFN_INNATE && hasComboAttackSlot;
+         trackingAttackPress = false;
+         trackingRoute = FallbackRoute.NONE;
          attackPressStartTick = getPlayerTick();
-         trace("press decision route={} tracking={} comboSlot={} startTick={}", fallbackRoute, trackingAttackPress, hasComboAttackSlot, attackPressStartTick);
-         if (fallbackRoute != FallbackRoute.NONE && hasComboAttackSlot) {
-            event.setCanceled(true);
-            drainPendingAttackClicks();
-            if (fallbackRoute == FallbackRoute.STANDARD_EPICFIGHT) {
-               invokeNativeEpicFightAttack(ControlEngine.getInstance());
-            } else {
-               primeEpicFightSameKeyAttack(ControlEngine.getInstance());
-            }
+         trace("press decision route={} comboSlot={} startTick={}", fallbackRoute, hasComboAttackSlot, attackPressStartTick);
+         if (fallbackRoute == FallbackRoute.EFN_INNATE && hasComboAttackSlot) {
+            trackingAttackPress = true;
+            trackingRoute = fallbackRoute;
+            trace("press handed to invincible raw input route={} tracking={}", fallbackRoute, trackingAttackPress);
+            return;
+         }
+
+         if (fallbackRoute == FallbackRoute.STANDARD_EPICFIGHT && hasComboAttackSlot) {
+            trace("press left to native epicfight input route={}", fallbackRoute);
          }
       } else if (event.getAction() == InputConstants.RELEASE) {
          if (trackingAttackPress) {
-            event.setCanceled(true);
             int heldTicks = Math.max(1, getPlayerTick() - attackPressStartTick);
-            trace("release heldTicks={}", heldTicks);
-            if (heldTicks <= ClientConfig.holdingThreshold + 1 && shouldUseFallback("release-short")) {
-               ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
-               trace("release short handled by invincible input route heldTicks={}", heldTicks);
-            } else {
-               ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
-               trace("release handed to epicfight same-key router heldTicks={}", heldTicks);
-            }
+            trace("release handed to invincible raw input route={} heldTicks={}", trackingRoute, heldTicks);
          }
 
          trackingAttackPress = false;
+         trackingRoute = FallbackRoute.NONE;
       }
    }
 
@@ -91,16 +84,12 @@ public final class VanillaAttackInputFallback {
    }
 
    public static boolean shouldSuppressSeparateWeaponInnate() {
-      return trackingAttackPress && isWeaponInnateBoundToVanillaAttack() && shouldUseFallback("suppress-separate-innate");
+      return trackingAttackPress && trackingRoute == FallbackRoute.EFN_INNATE && isWeaponInnateBoundToVanillaAttack();
    }
 
    private static boolean isVanillaAttackButton(int button) {
       return Minecraft.getInstance().options.keyAttack.getKey().getType() == InputConstants.Type.MOUSE
          && Minecraft.getInstance().options.keyAttack.getKey().getValue() == button;
-   }
-
-   private static boolean shouldUseFallback(String source) {
-      return getFallbackRoute(source) != FallbackRoute.NONE;
    }
 
    private static FallbackRoute getFallbackRoute(String source) {
@@ -193,55 +182,6 @@ public final class VanillaAttackInputFallback {
    private static int getPlayerTick() {
       LocalPlayer player = Minecraft.getInstance().player;
       return player != null ? player.tickCount : 0;
-   }
-
-   private static void drainPendingAttackClicks() {
-      while (Minecraft.getInstance().options.keyAttack.consumeClick()) {
-      }
-
-      while (EpicFightKeyMappings.ATTACK.consumeClick()) {
-      }
-
-      while (EpicFightKeyMappings.WEAPON_INNATE_SKILL.consumeClick()) {
-      }
-   }
-
-   private static void invokeNativeEpicFightAttack(ControlEngine controlEngine) {
-      if (controlEngine.getPlayerPatch() == null) {
-         trace("press native epicfight attack skipped reason=no-control-engine-playerpatch");
-         return;
-      }
-
-      clearSameKeyAttackState(controlEngine);
-      ((ControlEngineAccessor)controlEngine).efn$invokeMaybeAttack();
-      trace(
-         "press invoked native epicfight attack attackKey={} innateKey={} sameKey={}",
-         EpicFightKeyMappings.ATTACK.getKey(),
-         EpicFightKeyMappings.WEAPON_INNATE_SKILL.getKey(),
-         isWeaponInnateBoundToVanillaAttack()
-      );
-   }
-
-   private static void primeEpicFightSameKeyAttack(ControlEngine controlEngine) {
-      ControlEngineAccessor accessor = (ControlEngineAccessor)controlEngine;
-      clearSameKeyAttackState(controlEngine);
-      ControlEngine.setKeyBind(EpicFightKeyMappings.ATTACK, false);
-      ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, true);
-      accessor.efn$setWeaponInnatePressToggle(true);
-      accessor.efn$setWeaponInnatePressCounter(0);
-      trace(
-         "press primed epicfight same-key router attackKey={} innateKey={} threshold={}",
-         EpicFightKeyMappings.ATTACK.getKey(),
-         EpicFightKeyMappings.WEAPON_INNATE_SKILL.getKey(),
-         ClientConfig.holdingThreshold
-      );
-   }
-
-   private static void clearSameKeyAttackState(ControlEngine controlEngine) {
-      ControlEngineAccessor accessor = (ControlEngineAccessor)controlEngine;
-      accessor.efn$setWeaponInnatePressToggle(false);
-      accessor.efn$setAttackLightPressToggle(false);
-      accessor.efn$setWeaponInnatePressCounter(0);
    }
 
    private static int autoAttackCount(LocalPlayerPatch playerPatch, CapabilityItem capabilityItem) {
