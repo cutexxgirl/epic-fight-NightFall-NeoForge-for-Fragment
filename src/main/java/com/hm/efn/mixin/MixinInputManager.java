@@ -1,9 +1,10 @@
 package com.hm.efn.mixin;
 
+import com.hm.efn.EFN;
 import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
-import com.p1nero.invincible.InvincibleConfig;
 import com.google.common.collect.BiMap;
+import com.p1nero.invincible.InvincibleConfig;
 import com.p1nero.invincible.api.Side;
 import com.p1nero.invincible.api.combo.ComboNode;
 import com.p1nero.invincible.api.combo.ComboType;
@@ -25,6 +26,7 @@ import java.util.Queue;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -262,7 +264,19 @@ public abstract class MixinInputManager {
          }
 
          List<CPSkillRequest> packets = efn$getAvailablePackets(container);
-         if (!packets.isEmpty() && container.canUse(executor, new SkillCastEvent(executor, container, null))) {
+         if (!packets.isEmpty()) {
+            SkillCastEvent clientCastEvent = new SkillCastEvent(executor, container, null);
+            boolean clientCanUse = container.canUse(executor, clientCastEvent);
+            EFN.LOGGER.info(
+               "[EFN/InputTrace] invincible-hijack request skill={} packets={} clientCanUse={} creative={} mode={} item={}",
+               efn$skillName(container),
+               packets.size(),
+               clientCanUse,
+               Minecraft.getInstance().player != null && Minecraft.getInstance().player.isCreative(),
+               executor.getPlayerMode(),
+               efn$itemName(executor.getOriginal().getMainHandItem())
+            );
+
             for (CPSkillRequest packet : packets) {
                EpicFightNetworkManager.sendToServer(packet);
             }
@@ -366,5 +380,15 @@ public abstract class MixinInputManager {
       if ((Boolean)manager.getDataValue(skillDataKey) != key.isDown()) {
          manager.setDataSync(skillDataKey, key.isDown());
       }
+   }
+
+   @Unique
+   private static String efn$skillName(SkillContainer container) {
+      return container == null || container.getSkill() == null ? "null" : String.valueOf(container.getSkill().getRegistryName());
+   }
+
+   @Unique
+   private static String efn$itemName(ItemStack itemStack) {
+      return itemStack == null || itemStack.isEmpty() ? "empty" : String.valueOf(BuiltInRegistries.ITEM.getKey(itemStack.getItem()));
    }
 }

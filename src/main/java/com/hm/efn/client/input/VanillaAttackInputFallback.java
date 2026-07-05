@@ -51,7 +51,7 @@ public final class VanillaAttackInputFallback {
 
       trace("mouse vanilla-attack button={} action={} trackingBefore={}", event.getButton(), event.getAction(), trackingAttackPress);
       if (event.getAction() == InputConstants.PRESS) {
-         trackingAttackPress = shouldUseFallback("press");
+         trackingAttackPress = shouldUseFallback("press") && hasComboAttackSlot();
          longPressTriggered = false;
          attackPressStartTick = getPlayerTick();
          trace("press decision tracking={} startTick={}", trackingAttackPress, attackPressStartTick);
@@ -91,7 +91,7 @@ public final class VanillaAttackInputFallback {
    }
 
    public static boolean shouldSuppressSeparateWeaponInnate() {
-      return isWeaponInnateBoundToVanillaAttack() && shouldUseFallback("suppress-separate-innate");
+      return trackingAttackPress && isWeaponInnateBoundToVanillaAttack() && shouldUseFallback("suppress-separate-innate");
    }
 
    private static boolean isVanillaAttackButton(int button) {
@@ -168,6 +168,18 @@ public final class VanillaAttackInputFallback {
       InputConstants.Key attackKey = Minecraft.getInstance().options.keyAttack.getKey();
       InputConstants.Key weaponInnateKey = EpicFightKeyMappings.WEAPON_INNATE_SKILL.getKey();
       return attackKey.getType() == weaponInnateKey.getType() && attackKey.getValue() == weaponInnateKey.getValue();
+   }
+
+   private static boolean hasComboAttackSlot() {
+      Minecraft minecraft = Minecraft.getInstance();
+      LocalPlayerPatch playerPatch = minecraft.player != null ? EpicFightCapabilities.getEntityPatch(minecraft.player, LocalPlayerPatch.class) : null;
+      SkillContainer comboAttacks = playerPatch != null ? playerPatch.getSkill(SkillSlots.COMBO_ATTACKS) : null;
+      boolean hasComboAttackSlot = comboAttacks != null && !comboAttacks.isEmpty();
+      if (!hasComboAttackSlot) {
+         trace("press fallback=false reason=no-combo-slot container={} skill={}", comboAttacks != null, skillName(comboAttacks));
+      }
+
+      return hasComboAttackSlot;
    }
 
    private static int getPlayerTick() {
