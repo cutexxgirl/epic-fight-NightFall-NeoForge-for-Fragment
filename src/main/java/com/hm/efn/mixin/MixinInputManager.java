@@ -26,6 +26,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -314,28 +315,66 @@ public abstract class MixinInputManager {
             return;
          }
 
-         List<CPSkillRequest> packets = efn$getAvailablePackets(container);
-         if (!packets.isEmpty()) {
-            SkillCastEvent clientCastEvent = new SkillCastEvent(executor, container, null);
-            boolean clientCanUse = container.canUse(executor, clientCastEvent);
+         InvinciblePlayer invinciblePlayer = InvincibleAttachments.getPlayer((Player)executor.getOriginal());
+         currentNode = invinciblePlayer.getCurrentLogicNode();
+         SkillCastEvent clientCastEvent = new SkillCastEvent(executor, container, new CompoundTag());
+         boolean clientCanUse = container.canUse(executor, clientCastEvent);
+         if (!clientCanUse) {
             EFN.LOGGER.info(
-               "[EFN/InputTrace] invincible-hijack request skill={} packets={} clientCanUse={} creative={} mode={} item={}",
+               "[EFN/InputTrace] invincible-hijack blocked skill={} skillExecutable={} stateExecutable={} canceled={} reserve={} creative={} mode={} item={}",
                efn$skillName(container),
-               packets.size(),
-               clientCanUse,
+               clientCastEvent.isSkillExecutable(),
+               clientCastEvent.isStateExecutable(),
+               clientCastEvent.isCanceled(),
+               clientCastEvent.shouldReserveKey(),
                Minecraft.getInstance().player != null && Minecraft.getInstance().player.isCreative(),
                executor.getPlayerMode(),
                efn$itemName(executor.getOriginal().getMainHandItem())
             );
-
-            for (CPSkillRequest packet : packets) {
-               EpicFightNetworkManager.sendToServer(packet);
+            if (!clientCastEvent.shouldReserveKey()) {
+               epicFight_Nightfall$efnActiveKeys.clear();
+               epicFight_Nightfall$efnInputBuffer.clear();
+               clearKeyCache();
             }
 
+            return;
+         }
+
+         List<CPSkillRequest> packets = efn$getAvailablePackets(container);
+         if (packets.isEmpty()) {
+            EFN.LOGGER.info(
+               "[EFN/InputTrace] invincible-hijack no-packet skill={} skillExecutable={} stateExecutable={} canceled={} item={}",
+               efn$skillName(container),
+               clientCastEvent.isSkillExecutable(),
+               clientCastEvent.isStateExecutable(),
+               clientCastEvent.isCanceled(),
+               efn$itemName(executor.getOriginal().getMainHandItem())
+            );
             epicFight_Nightfall$efnActiveKeys.clear();
             epicFight_Nightfall$efnInputBuffer.clear();
             clearKeyCache();
+            return;
          }
+
+         EFN.LOGGER.info(
+            "[EFN/InputTrace] invincible-hijack request skill={} packets={} clientCanUse={} skillExecutable={} stateExecutable={} creative={} mode={} item={}",
+            efn$skillName(container),
+            packets.size(),
+            clientCanUse,
+            clientCastEvent.isSkillExecutable(),
+            clientCastEvent.isStateExecutable(),
+            Minecraft.getInstance().player != null && Minecraft.getInstance().player.isCreative(),
+            executor.getPlayerMode(),
+            efn$itemName(executor.getOriginal().getMainHandItem())
+         );
+
+         for (CPSkillRequest packet : packets) {
+            EpicFightNetworkManager.sendToServer(packet);
+         }
+
+         epicFight_Nightfall$efnActiveKeys.clear();
+         epicFight_Nightfall$efnInputBuffer.clear();
+         clearKeyCache();
       }
    }
 
