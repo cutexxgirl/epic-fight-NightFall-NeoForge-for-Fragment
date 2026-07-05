@@ -213,26 +213,15 @@ public final class VanillaAttackInputFallback {
 
       ControlEngine controlEngine = ControlEngine.getInstance();
       ControlEngineAccessor accessor = (ControlEngineAccessor)controlEngine;
-      clearSameKeyAttackState(controlEngine);
-      SkillCastEvent skillCastEvent = comboAttacks.sendCastRequest(playerPatch, controlEngine);
+      accessor.efn$setWeaponInnatePressToggle(false);
+      accessor.efn$setWeaponInnatePressCounter(0);
+      accessor.efn$setAttackLightPressToggle(true);
       trace(
-         "combo request skill={} creative={} spectator={} executable={} skillExecutable={} stateExecutable={} reserve={}",
+         "combo request queued skill={} creative={} spectator={}",
          skillName(comboAttacks),
          player.isCreative(),
-         player.isSpectator(),
-         skillCastEvent.isExecutable(),
-         skillCastEvent.isSkillExecutable(),
-         skillCastEvent.isStateExecutable(),
-         skillCastEvent.shouldReserveKey()
+         player.isSpectator()
       );
-      if (skillCastEvent.isExecutable()) {
-         player.resetAttackStrengthTicker();
-         controlEngine.releaseAllServedKeys();
-      } else if (!player.isSpectator()) {
-         accessor.efn$invokeReserveKey(SkillSlots.COMBO_ATTACKS, EpicFightInputAction.ATTACK);
-      }
-      controlEngine.lockHotkeys();
-      clearSameKeyAttackState(controlEngine);
    }
 
    private static boolean requestWeaponInnate() {
