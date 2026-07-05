@@ -86,6 +86,18 @@ dependencies {
 tasks.named('jar', Jar).configure {
     from(zipTree(layout.projectDirectory.file('libs/guhaos-vix-1531111-8258354.jar'))) {
         exclude 'META-INF/**'
+        exclude 'com/guhao/vix/MixinConnector.class'
+        exclude 'com/guhao/vix/camera/CameraEvents.class'
+        exclude 'com/guhao/vix/client/screeneffect/ScreenEffectBase.class'
+        exclude 'com/guhao/vix/client/screeneffect/ScreenEffectBase$SE_Pipeline.class'
+        exclude 'com/guhao/vix/client/screeneffect/geometry/WorldGeometryPipeline.class'
+        exclude 'com/guhao/vix/mixin/**'
+        exclude 'com/guhao/vix/mixinloader/**'
+        exclude 'com/guhao/vix/particles/AAAEffekParticle.class'
+        exclude 'com/guhao/vix/particles/AAAFlowingEffekParticle.class'
+        exclude 'com/guhao/vix/particles/SkinModelParticle.class'
+        exclude 'com/guhao/vix/particles/TexturedSkinModelParticle.class'
+        exclude 'com/guhao/vix/util/MathUtils.class'
         exclude 'vix.mixins.json'
         exclude 'pack.mcmeta'
     }

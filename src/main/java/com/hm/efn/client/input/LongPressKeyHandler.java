@@ -127,7 +127,7 @@ public class LongPressKeyHandler {
       Options options = Minecraft.getInstance().options;
       checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.DEMON_KEY, EFNKeyMappings.DEMON);
       checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.ANGEL_KEY, EFNKeyMappings.ANGEL);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.SUMMON_SWORD, EFNKeyMappings.SUMMONED_SWORD);
+      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.SUMMON_SWORD, EFNKeyMappings.SUMMONED_SWORD, true);
       checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.GUARD_KEY, EpicFightKeyMappings.GUARD);
       checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.SPRINT_KEY, options.keySprint);
       checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.JUMP_KEY, options.keyJump);
@@ -143,8 +143,23 @@ public class LongPressKeyHandler {
       DeferredHolder<SkillDataKey<?>, SkillDataKey<Boolean>> dataKey,
       KeyMapping keyMapping
    ) {
+      checkAndUpdateKey(manager, keyCode, action, dataKey, keyMapping, false);
+   }
+
+   private static void checkAndUpdateKey(
+      SkillDataManager manager,
+      int keyCode,
+      int action,
+      DeferredHolder<SkillDataKey<?>, SkillDataKey<Boolean>> dataKey,
+      KeyMapping keyMapping,
+      boolean pressOnly
+   ) {
       if (dataKey != null && keyMapping != null) {
          if (keyCode == keyMapping.getKey().getValue()) {
+            if (pressOnly && action == 0) {
+               return;
+            }
+
             boolean isDown = action != 0;
             if (!manager.hasData(dataKey) || (Boolean)manager.getDataValue(dataKey) != isDown) {
                manager.setDataSync(dataKey, isDown);

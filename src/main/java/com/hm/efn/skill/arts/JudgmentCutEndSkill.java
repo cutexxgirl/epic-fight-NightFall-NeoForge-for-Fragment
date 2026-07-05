@@ -39,6 +39,7 @@ import yesman.epicfight.world.capabilities.item.CapabilityItem;
 public class JudgmentCutEndSkill extends PassiveSkill {
    private int cooldown;
    private boolean needenchantment;
+   private boolean wasArtsKeyDown;
 
    public JudgmentCutEndSkill(JudgmentCutEndSkill.Builder builder) {
       super(builder);
@@ -118,7 +119,10 @@ public class JudgmentCutEndSkill extends PassiveSkill {
    }
 
    private void handleKeyInput(SkillContainer container) {
-      if (EFNKeyMappings.EFN_ARTS.isDown()) {
+      boolean isArtsKeyDown = EFNKeyMappings.EFN_ARTS.isDown();
+      boolean shouldCast = isArtsKeyDown && !this.wasArtsKeyDown;
+      this.wasArtsKeyDown = isArtsKeyDown;
+      if (shouldCast && this.canExecute(container)) {
          CPSkillRequest packet = new CPSkillRequest((SkillSlot)SkillSlot.ENUM_MANAGER.get(container.getSlot().universalOrdinal()), WorkType.CAST);
          EpicFightNetworkManager.sendToServer(packet);
       }

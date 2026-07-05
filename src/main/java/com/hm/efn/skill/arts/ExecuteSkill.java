@@ -83,6 +83,7 @@ public class ExecuteSkill extends PassiveSkill {
    private float neutralizeTargetHitDamageMultiplier;
    private float neutralizeTargetHitImpactMultiplier;
    private List<LivingEntity> currentNeutralizeEntities = new ArrayList<>();
+   private boolean wasArtsKeyDown;
 
    public ExecuteSkill(ExecuteSkill.Builder builder) {
       super(builder);
@@ -409,7 +410,10 @@ public class ExecuteSkill extends PassiveSkill {
    }
 
    private void handleKeyInput(SkillContainer container) {
-      if (EFNKeyMappings.EFN_ARTS.isDown()) {
+      boolean isArtsKeyDown = EFNKeyMappings.EFN_ARTS.isDown();
+      boolean shouldCast = isArtsKeyDown && !this.wasArtsKeyDown;
+      this.wasArtsKeyDown = isArtsKeyDown;
+      if (shouldCast && this.canExecute(container)) {
          CPSkillRequest packet = new CPSkillRequest((SkillSlot)SkillSlot.ENUM_MANAGER.get(container.getSlot().universalOrdinal()), WorkType.CAST);
          EpicFightNetworkManager.sendToServer(packet);
       }

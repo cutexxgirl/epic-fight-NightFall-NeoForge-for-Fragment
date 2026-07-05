@@ -204,11 +204,7 @@ public class SinSummonedSwordEntity extends Mob implements IAvalonMeshEntity {
       sword.setLifetimeTicks(80);
       sword.setAngel(isAngel);
       sword.setDemon(isDemon);
-      SinSummonedSwordPatch<?> patch = (SinSummonedSwordPatch<?>)EpicFightCapabilities.getEntityPatch(sword, SinSummonedSwordPatch.class);
-      LivingEntity target = null;
-      if (patch != null) {
-         target = patch.target();
-      }
+      LivingEntity target = getInitialSummonedSwordTarget(serverPlayerPatch, player);
 
       if (target != null && target.isAlive()) {
          sword.setPos(spawnPos);
@@ -228,6 +224,27 @@ public class SinSummonedSwordEntity extends Mob implements IAvalonMeshEntity {
       if (isDemon) {
          level.sendParticles(ParticleTypes.SOUL, spawnPos.x, spawnPos.y, spawnPos.z, 3, 0.2, 0.2, 0.2, 0.05);
       }
+   }
+
+   @Nullable
+   private static LivingEntity getInitialSummonedSwordTarget(ServerPlayerPatch serverPlayerPatch, ServerPlayer player) {
+      LivingEntity target = serverPlayerPatch.getTarget();
+      if (isValidInitialSummonedSwordTarget(target, player)) {
+         return target;
+      }
+
+      for (LivingEntity hitTarget : serverPlayerPatch.getCurrentlyActuallyHitEntities()) {
+         if (isValidInitialSummonedSwordTarget(hitTarget, player)) {
+            return hitTarget;
+         }
+      }
+
+      target = player.getLastHurtMob();
+      return isValidInitialSummonedSwordTarget(target, player) ? target : null;
+   }
+
+   private static boolean isValidInitialSummonedSwordTarget(@Nullable LivingEntity target, ServerPlayer player) {
+      return target != null && target != player && target.isAlive() && !target.isRemoved() && target.level() == player.level();
    }
 
    protected void defineSynchedData(SynchedEntityData.Builder builder) {

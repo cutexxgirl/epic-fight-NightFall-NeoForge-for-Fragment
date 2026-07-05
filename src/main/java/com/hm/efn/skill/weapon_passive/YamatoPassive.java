@@ -100,8 +100,8 @@ public class YamatoPassive extends PassiveSkill {
 
    private static void setJudgementCutEndSkill(PlayerPatch<?> executer) {
       SkillContainer artContainer = executer.getSkill(EFNSkillSlots.JUDGMENTCUT_END);
-      if (artContainer != null) {
-         executer.getSkill(EFNSkillSlots.JUDGMENTCUT_END).setSkill(EFNSkills.JUDGEMENTCUTEND);
+      if (artContainer != null && EFNSkills.JUDGEMENTCUTEND != null && artContainer.getSkill() != EFNSkills.JUDGEMENTCUTEND) {
+         artContainer.setSkill(EFNSkills.JUDGEMENTCUTEND);
       }
    }
 
@@ -323,6 +323,7 @@ public class YamatoPassive extends PassiveSkill {
 
    public void updateContainer(SkillContainer container) {
       super.updateContainer(container);
+      setJudgementCutEndSkill(container.getExecutor());
       if (!container.getExecutor().isLogicalClient()) {
          this.handleCombatStaminaRegen(container.getExecutor());
       }

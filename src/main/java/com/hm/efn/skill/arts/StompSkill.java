@@ -36,6 +36,7 @@ import yesman.epicfight.world.capabilities.entitypatch.player.PlayerPatch;
 public class StompSkill extends PassiveSkill {
    private float stamina_cost;
    private int cooldown;
+   private boolean wasArtsKeyDown;
 
    public StompSkill(StompSkill.Builder builder) {
       super(builder);
@@ -107,7 +108,10 @@ public class StompSkill extends PassiveSkill {
    }
 
    private void handleKeyInput(SkillContainer container) {
-      if (EFNKeyMappings.EFN_ARTS.isDown()) {
+      boolean isArtsKeyDown = EFNKeyMappings.EFN_ARTS.isDown();
+      boolean shouldCast = isArtsKeyDown && !this.wasArtsKeyDown;
+      this.wasArtsKeyDown = isArtsKeyDown;
+      if (shouldCast && this.canExecute(container)) {
          CPSkillRequest packet = new CPSkillRequest((SkillSlot)SkillSlot.ENUM_MANAGER.get(container.getSlot().universalOrdinal()), WorkType.CAST);
          EpicFightNetworkManager.sendToServer(packet);
       }

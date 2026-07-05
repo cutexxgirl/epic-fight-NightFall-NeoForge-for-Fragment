@@ -320,12 +320,13 @@ public class SinSummonedSwordPatch<T extends SinSummonedSwordEntity> extends Mob
             if (owner != null) {
                ServerPlayerPatch ownerPatch = (ServerPlayerPatch)EpicFightCapabilities.getEntityPatch(owner, ServerPlayerPatch.class);
                if (ownerPatch != null) {
+                  LivingEntity hitTarget = target instanceof LivingEntity livingTarget ? livingTarget : null;
                   if (((SinSummonedSwordEntity)this.getOriginal()).isAngel()) {
-                     TargetTeleportUtils.ExecuteYamatoTricker(ownerPatch);
+                     TargetTeleportUtils.ExecuteYamatoTricker(ownerPatch, hitTarget);
                      owner.level().playSound(null, owner.getX(), owner.getY(), owner.getZ(), SoundEvents.AMETHYST_BLOCK_HIT, owner.getSoundSource(), 1.0F, 1.0F);
                      owner.addEffect(new MobEffectInstance(EFNMobEffectRegistry.INVINCIBILITY_EFFECT, 30, 0, false, false, false));
                   } else if (((SinSummonedSwordEntity)this.getOriginal()).isDemon()) {
-                     TargetTeleportUtils.ExecuteYamatoCatcher(ownerPatch);
+                     TargetTeleportUtils.ExecuteYamatoCatcher(ownerPatch, hitTarget);
                      owner.level().playSound(null, owner.getX(), owner.getY(), owner.getZ(), SoundEvents.WITHER_SHOOT, owner.getSoundSource(), 1.0F, 1.0F);
                      owner.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 40, 2, false, false, false));
                   }

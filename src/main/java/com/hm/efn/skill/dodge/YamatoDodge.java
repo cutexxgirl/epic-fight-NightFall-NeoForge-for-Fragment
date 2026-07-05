@@ -108,8 +108,7 @@ public class YamatoDodge extends DodgeSkill {
 
    public boolean isExecutableState(PlayerPatch<?> executor) {
       EntityState playerState = executor.getEntityState();
-      return !executor.isInAir()
-         && playerState.canUseSkill()
+      return playerState.canUseSkill()
          && !((Player)executor.getOriginal()).onClimbable()
          && ((Player)executor.getOriginal()).getVehicle() == null;
    }

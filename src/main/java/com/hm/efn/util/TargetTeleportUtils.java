@@ -57,18 +57,17 @@ public class TargetTeleportUtils {
    };
 
    public static void ExecuteYamatoTricker(LivingEntityPatch<?> entitypatch) {
+      ExecuteYamatoTricker(entitypatch, null);
+   }
+
+   public static void ExecuteYamatoTricker(LivingEntityPatch<?> entitypatch, LivingEntity hitTarget) {
       if (entitypatch != null && !entitypatch.isLogicalClient() && entitypatch.getOriginal() instanceof ServerPlayer player) {
          ServerPlayerPatch playerPatch = (ServerPlayerPatch)EpicFightCapabilities.getEntityPatch(player, ServerPlayerPatch.class);
          if (playerPatch == null) {
             return;
          }
 
-         List<LivingEntity> recentEntities = new ArrayList<>(playerPatch.getCurrentlyActuallyHitEntities());
-         LivingEntity lastHurtMob = player.getLastHurtMob();
-         if (lastHurtMob != null && !recentEntities.contains(lastHurtMob)) {
-            recentEntities.add(lastHurtMob);
-         }
-
+         List<LivingEntity> recentEntities = collectTeleportTargets(playerPatch, player, hitTarget);
          playerPatch.getCurrentlyActuallyHitEntities().clear();
          player.setLastHurtMob(null);
          if (recentEntities.isEmpty()) {
@@ -95,17 +94,17 @@ public class TargetTeleportUtils {
    }
 
    public static void ExecuteYamatoCatcher(LivingEntityPatch<?> entitypatch) {
+      ExecuteYamatoCatcher(entitypatch, null);
+   }
+
+   public static void ExecuteYamatoCatcher(LivingEntityPatch<?> entitypatch, LivingEntity hitTarget) {
       if (entitypatch != null && !entitypatch.isLogicalClient() && entitypatch.getOriginal() instanceof ServerPlayer player) {
          ServerPlayerPatch playerPatch = (ServerPlayerPatch)EpicFightCapabilities.getEntityPatch(player, ServerPlayerPatch.class);
          if (playerPatch == null) {
             return;
          }
 
-         List<LivingEntity> recentEntities = new ArrayList<>(playerPatch.getCurrentlyActuallyHitEntities());
-         LivingEntity lastHurtMob = player.getLastHurtMob();
-         if (lastHurtMob != null && !recentEntities.contains(lastHurtMob)) {
-            recentEntities.add(lastHurtMob);
-         }
+         List<LivingEntity> recentEntities = collectTeleportTargets(playerPatch, player, hitTarget);
 
          double catchRange = 30.0;
          float catchAngle = 180.0F;
@@ -144,6 +143,21 @@ public class TargetTeleportUtils {
                player.getCooldowns().addCooldown(Items.ENDER_PEARL, 5);
             }
          }
+      }
+   }
+
+   private static List<LivingEntity> collectTeleportTargets(ServerPlayerPatch playerPatch, ServerPlayer player, LivingEntity directTarget) {
+      List<LivingEntity> targets = new ArrayList<>();
+      addTargetCandidate(targets, directTarget);
+      playerPatch.getCurrentlyActuallyHitEntities().forEach(entity -> addTargetCandidate(targets, entity));
+      addTargetCandidate(targets, player.getLastHurtMob());
+      addTargetCandidate(targets, playerPatch.getTarget());
+      return targets;
+   }
+
+   private static void addTargetCandidate(List<LivingEntity> targets, LivingEntity entity) {
+      if (entity != null && !targets.contains(entity)) {
+         targets.add(entity);
       }
    }
 
@@ -198,6 +212,10 @@ public class TargetTeleportUtils {
       try {
          List<Entity> entityList = new ArrayList<>(recentEntities);
          LivingEntity epicFightTarget = playerPatch.getTarget();
+         if (epicFightTarget != null && !entityList.contains(epicFightTarget)) {
+            entityList.add(epicFightTarget);
+         }
+
          entityList.removeIf(TargetTeleportUtils::isTargetDummy);
          entityList.removeIf(entityx -> entityx instanceof DoppelgangerEntity);
          entityList.removeIf(entityx -> entityx instanceof VFXEntity);
@@ -229,7 +247,7 @@ public class TargetTeleportUtils {
                      firstPriority.add(livingEntity);
                   } else if (entity instanceof Mob mob && mob.getTarget() == playerPatch.getOriginal()) {
                      firstPriority.add(livingEntity);
-                  } else if (playerPatch.getCurrentlyActuallyHitEntities() == entity) {
+                  } else if (recentEntities.contains(entity)) {
                      firstPriority.add(livingEntity);
                   } else if (entity == epicFightTarget) {
                      secondPriority.add(livingEntity);
@@ -314,7 +332,8 @@ public class TargetTeleportUtils {
 
    private static boolean isInFront(Vec3 viewerPos, Vec3 lookVec, Vec3 targetPos, float maxAngleDeg) {
       Vec3 toTarget = targetPos.subtract(viewerPos).normalize();
-      double angle = Math.toDegrees(Math.acos(lookVec.dot(toTarget)));
+      double dot = Math.max(-1.0, Math.min(1.0, lookVec.dot(toTarget)));
+      double angle = Math.toDegrees(Math.acos(dot));
       return angle <= maxAngleDeg;
    }
 
