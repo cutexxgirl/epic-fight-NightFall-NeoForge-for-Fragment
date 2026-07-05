@@ -25,7 +25,12 @@ public class CompatInfos {
       CATACLYSM_MOD = new CompatInfos.CompatMod(
          "cataclysm", m -> new CompatInfos.CompatMixinInfo(m, "MixinLLibraryBossMonster"), m -> new CompatInfos.CompatMixinInfo(m, "MixinIABossMonster") {}
       );
-      AAA = new CompatInfos.CompatMod("aaa_particles", m -> new CompatInfos.CompatMixinInfo(m, "EffekRendererMixin") {});
+      AAA = new CompatInfos.CompatMod(
+         "aaa_particles",
+         m -> new CompatInfos.CompatMixinInfo(m, "EffekRendererMixin") {},
+         m -> new CompatInfos.CompatMixinInfo(m, "EffectDefinitionAccessor") {},
+         m -> new CompatInfos.CompatMixinInfo(m, "EffectRegistryMixin") {}
+      );
    }
 
    public static void initCompatInfo() {

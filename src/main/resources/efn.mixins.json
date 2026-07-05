@@ -36,7 +36,10 @@
     "MixinMouseHandler",
     "MouseHandlerMixin",
     "PPlayerRendererMixin",
-    "WhiteAfterimageProviderMixin"
+    "WhiteAfterimageProviderMixin",
+    "compat.aaa.EffekRendererMixin",
+    "compat.aaa.EffectDefinitionAccessor",
+    "compat.aaa.EffectRegistryMixin"
   ],
   "injectors": {
     "defaultRequire": 1
