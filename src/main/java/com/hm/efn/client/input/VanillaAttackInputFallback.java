@@ -34,7 +34,7 @@ public final class VanillaAttackInputFallback {
 
    @SubscribeEvent(priority = EventPriority.LOWEST)
    public static void onMouseInput(Pre event) {
-      if (!isEpicFightAttackButton(event.getButton())) {
+      if (!isVanillaAttackButton(event.getButton())) {
          return;
       }
 
@@ -54,8 +54,9 @@ public final class VanillaAttackInputFallback {
       }
    }
 
-   private static boolean isEpicFightAttackButton(int button) {
-      return EpicFightKeyMappings.ATTACK.getKey().getType() == InputConstants.Type.MOUSE && EpicFightKeyMappings.ATTACK.getKey().getValue() == button;
+   private static boolean isVanillaAttackButton(int button) {
+      return Minecraft.getInstance().options.keyAttack.getKey().getType() == InputConstants.Type.MOUSE
+         && Minecraft.getInstance().options.keyAttack.getKey().getValue() == button;
    }
 
    private static boolean shouldUseFallback() {
@@ -64,7 +65,8 @@ public final class VanillaAttackInputFallback {
          return false;
       }
 
-      if (!InputManager.isBoundToSamePhysicalInput(EpicFightInputAction.ATTACK, EpicFightInputAction.WEAPON_INNATE_SKILL)) {
+      if (!InputManager.isBoundToSamePhysicalInput(EpicFightInputAction.ATTACK, EpicFightInputAction.WEAPON_INNATE_SKILL)
+         && !isEpicFightAttackUnbound()) {
          return false;
       }
 
@@ -89,8 +91,15 @@ public final class VanillaAttackInputFallback {
    }
 
    private static void drainPendingAttackClicks() {
+      while (Minecraft.getInstance().options.keyAttack.consumeClick()) {
+      }
+
       while (EpicFightKeyMappings.ATTACK.consumeClick()) {
       }
+   }
+
+   private static boolean isEpicFightAttackUnbound() {
+      return EpicFightKeyMappings.ATTACK.getKey() == InputConstants.UNKNOWN || EpicFightKeyMappings.ATTACK.getKey().getValue() == -1;
    }
 
    private static void requestComboAttack() {

@@ -88,6 +88,10 @@ public class LongPressKeyHandler {
    }
 
    private static boolean isMonitoredKey(int keyCode) {
+      if (isVanillaAttackKey(keyCode)) {
+         return true;
+      }
+
       for (KeyMapping mapping : MAPPINGS) {
          if (mapping.getKey().getValue() == keyCode) {
             return true;
@@ -107,26 +111,44 @@ public class LongPressKeyHandler {
    }
 
    private static void handleKeyInput(SkillDataManager manager, int keyCode, int action) {
-      for (int i = 0; i < 5; i++) {
-         if (keyCode == MAPPINGS[i].getKey().getValue()) {
-            if (action == 1) {
-               physicalPressed[i] = true;
-               pressTicks[i] = 0;
-               keyStates[i] = LongPressKeyHandler.KeyState.PRESSED;
-               syncKeyData(manager, i, true, false, 0);
-            } else if (action == 0) {
-               physicalPressed[i] = false;
-               if (keyStates[i] == LongPressKeyHandler.KeyState.PRESSED) {
-                  keyStates[i] = LongPressKeyHandler.KeyState.JUST_RELEASED;
-               } else {
-                  keyStates[i] = LongPressKeyHandler.KeyState.RELEASED;
-               }
+      int index = getComboKeyIndex(keyCode);
+      if (index < 0) {
+         return;
+      }
 
-               syncKeyData(manager, i, false, false, pressTicks[i]);
-            }
-            break;
+      if (action == 1) {
+         physicalPressed[index] = true;
+         pressTicks[index] = 0;
+         keyStates[index] = LongPressKeyHandler.KeyState.PRESSED;
+         syncKeyData(manager, index, true, false, 0);
+      } else if (action == 0) {
+         physicalPressed[index] = false;
+         if (keyStates[index] == LongPressKeyHandler.KeyState.PRESSED) {
+            keyStates[index] = LongPressKeyHandler.KeyState.JUST_RELEASED;
+         } else {
+            keyStates[index] = LongPressKeyHandler.KeyState.RELEASED;
+         }
+
+         syncKeyData(manager, index, false, false, pressTicks[index]);
+      }
+   }
+
+   private static int getComboKeyIndex(int keyCode) {
+      if (isVanillaAttackKey(keyCode)) {
+         return 0;
+      }
+
+      for (int i = 0; i < KEY_COUNT; i++) {
+         if (keyCode == MAPPINGS[i].getKey().getValue()) {
+            return i;
          }
       }
+
+      return -1;
+   }
+
+   private static boolean isVanillaAttackKey(int keyCode) {
+      return keyCode == Minecraft.getInstance().options.keyAttack.getKey().getValue();
    }
 
    private static void handleConditionKeyInput(SkillDataManager manager, int keyCode, int action) {

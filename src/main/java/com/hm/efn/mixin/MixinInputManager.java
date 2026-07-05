@@ -10,6 +10,7 @@ import com.p1nero.invincible.api.combo.ComboType;
 import com.p1nero.invincible.attachment.InvinciblePlayer;
 import com.p1nero.invincible.attachment.InvincibleAttachments;
 import com.p1nero.invincible.client.InputManager;
+import com.p1nero.invincible.client.InvincibleKeyMappings;
 import com.p1nero.invincible.gameassets.InvincibleConditions;
 import com.p1nero.invincible.gameassets.InvincibleSkillDataKeys;
 import com.p1nero.invincible.skill.ComboBasicAttack;
@@ -91,6 +92,9 @@ public abstract class MixinInputManager {
             SkillContainer container = efn$getHandledWeaponInnate(localPlayerPatch);
             if (container == null) {
                efn$clearHijackState();
+               if (efn$shouldSuppressInvincibleInput(localPlayerPatch)) {
+                  ci.cancel();
+               }
                return;
             }
 
@@ -144,23 +148,80 @@ public abstract class MixinInputManager {
          LocalPlayerPatch localPlayerPatch = (LocalPlayerPatch)EpicFightCapabilities.getEntityPatch(Minecraft.getInstance().player, LocalPlayerPatch.class);
          if (efn$getHandledWeaponInnate(localPlayerPatch) == null) {
             efn$clearHijackState();
+            if (efn$shouldSuppressInvincibleInput(localPlayerPatch)) {
+               ci.cancel();
+            }
             return;
          }
 
          ci.cancel();
+         int normalizedKey = efn$normalizeInputKey(key);
          if (action == 1) {
-            for (KeyMapping keyMapping : TYPE_KEY_MAP.values()) {
-               if (keyMapping.getKey().getValue() == key) {
-                  epicFight_Nightfall$efnActiveKeys.put(key, 1);
-               }
+            efn$handlePress(key);
+            if (normalizedKey != key) {
+               efn$handlePress(normalizedKey);
             }
-         } else if (action == 0 && epicFight_Nightfall$efnActiveKeys.containsKey(key)) {
-            int ticksHeld = epicFight_Nightfall$efnActiveKeys.remove(key);
-            int reserveTime = getComboBasicSkill() != null ? getComboBasicSkill().getMaxReserveTime() : (Integer)InvincibleConfig.RESERVE_TICK.get();
-            epicFight_Nightfall$efnInputBuffer.add(new int[]{key, ticksHeld, reserveTime});
-            efn$tryRequestSkillExecute();
+         } else if (action == 0) {
+            boolean handledRelease = efn$handleRelease(key);
+            if (normalizedKey != key) {
+               handledRelease |= efn$handleRelease(normalizedKey);
+            }
+
+            if (handledRelease) {
+               efn$tryRequestSkillExecute();
+            }
          }
       }
+   }
+
+   @Unique
+   private static void efn$handlePress(int key) {
+      for (KeyMapping keyMapping : TYPE_KEY_MAP.values()) {
+         if (keyMapping.getKey().getValue() == key) {
+            epicFight_Nightfall$efnActiveKeys.put(key, 1);
+            break;
+         }
+      }
+   }
+
+   @Unique
+   private static boolean efn$handleRelease(int key) {
+      if (epicFight_Nightfall$efnActiveKeys.containsKey(key)) {
+         int ticksHeld = epicFight_Nightfall$efnActiveKeys.remove(key);
+         int reserveTime = getComboBasicSkill() != null ? getComboBasicSkill().getMaxReserveTime() : (Integer)InvincibleConfig.RESERVE_TICK.get();
+         epicFight_Nightfall$efnInputBuffer.add(new int[]{key, ticksHeld, reserveTime});
+         return true;
+      }
+
+      return false;
+   }
+
+   @Unique
+   private static int efn$normalizeInputKey(int key) {
+      if (key == Minecraft.getInstance().options.keyAttack.getKey().getValue()) {
+         return InvincibleKeyMappings.KEY1.getKey().getValue();
+      }
+
+      return key;
+   }
+
+   @Unique
+   private static boolean efn$shouldSuppressInvincibleInput(LocalPlayerPatch localPlayerPatch) {
+      if (localPlayerPatch == null) {
+         return false;
+      }
+
+      SkillContainer container = localPlayerPatch.getSkill(SkillSlots.WEAPON_INNATE);
+      if (container == null || !(container.getSkill() instanceof EFNWeaponInnateBase skill)) {
+         return false;
+      }
+
+      ItemStack mainHandItem = localPlayerPatch.getOriginal().getMainHandItem();
+      return EpicFightCapabilities.getItemCapability(mainHandItem)
+         .filter(capabilityItem -> !capabilityItem.isEmpty())
+         .filter(capabilityItem -> capabilityItem.getInnateSkill(localPlayerPatch, mainHandItem) == skill)
+         .map(capabilityItem -> EFNBasicAttackRouting.shouldLetEpicFightBasicAttackRun(localPlayerPatch, capabilityItem))
+         .orElse(false);
    }
 
    @Unique
