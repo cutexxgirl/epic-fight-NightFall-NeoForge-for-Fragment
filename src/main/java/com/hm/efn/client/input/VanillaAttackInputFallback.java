@@ -6,9 +6,11 @@ import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
 import com.mojang.blaze3d.platform.InputConstants;
 import java.util.List;
+import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -20,6 +22,7 @@ import yesman.epicfight.client.events.engine.ControlEngine;
 import yesman.epicfight.client.input.EpicFightKeyMappings;
 import yesman.epicfight.client.world.capabilites.entitypatch.player.LocalPlayerPatch;
 import yesman.epicfight.config.ClientConfig;
+import yesman.epicfight.network.EpicFightNetworkManager;
 import yesman.epicfight.skill.Skill;
 import yesman.epicfight.skill.SkillContainer;
 import yesman.epicfight.skill.SkillSlots;
@@ -65,8 +68,12 @@ public final class VanillaAttackInputFallback {
             event.setCanceled(true);
             int heldTicks = Math.max(1, getPlayerTick() - attackPressStartTick);
             trace("release heldTicks={} longPressTriggered={}", heldTicks, longPressTriggered);
-            ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
-            trace("release handed to epicfight same-key router heldTicks={}", heldTicks);
+            if (heldTicks <= ClientConfig.holdingThreshold + 1 && shouldUseFallback("release-short")) {
+               requestComboAttack();
+            } else {
+               ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
+               trace("release handed to epicfight same-key router heldTicks={}", heldTicks);
+            }
          }
 
          trackingAttackPress = false;
@@ -201,15 +208,36 @@ public final class VanillaAttackInputFallback {
 
       ControlEngine controlEngine = ControlEngine.getInstance();
       ControlEngineAccessor accessor = (ControlEngineAccessor)controlEngine;
-      accessor.efn$setWeaponInnatePressToggle(false);
-      accessor.efn$setWeaponInnatePressCounter(0);
-      accessor.efn$setAttackLightPressToggle(true);
+      Set<CustomPacketPayload> queuedPackets = accessor.efn$getPacketsToSend();
+      int packetsBefore = queuedPackets.size();
+      clearSameKeyAttackState(controlEngine);
+      ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
+      ControlEngine.setKeyBind(EpicFightKeyMappings.ATTACK, true);
+      SkillCastEvent skillCastEvent = comboAttacks.sendCastRequest(playerPatch, controlEngine);
       trace(
-         "combo request queued skill={} creative={} spectator={}",
+         "combo request direct skill={} creative={} spectator={} executable={} skillExecutable={} stateExecutable={} reserve={} packetsBefore={} packetsAfter={}",
          skillName(comboAttacks),
          player.isCreative(),
-         player.isSpectator()
+         player.isSpectator(),
+         skillCastEvent.isExecutable(),
+         skillCastEvent.isSkillExecutable(),
+         skillCastEvent.isStateExecutable(),
+         skillCastEvent.shouldReserveKey(),
+         packetsBefore,
+         queuedPackets.size()
       );
+      if (skillCastEvent.isExecutable()) {
+         player.resetAttackStrengthTicker();
+         controlEngine.releaseAllServedKeys();
+      } else if (skillCastEvent.shouldReserveKey() && !player.isSpectator()) {
+         accessor.efn$invokeReserveKey(SkillSlots.COMBO_ATTACKS, EpicFightInputAction.ATTACK);
+      }
+
+      controlEngine.lockHotkeys();
+      flushQueuedPackets(accessor);
+      ControlEngine.setKeyBind(EpicFightKeyMappings.ATTACK, false);
+      ControlEngine.setKeyBind(EpicFightKeyMappings.WEAPON_INNATE_SKILL, false);
+      clearSameKeyAttackState(controlEngine);
    }
 
    private static void primeEpicFightSameKeyAttack(ControlEngine controlEngine) {
@@ -270,6 +298,22 @@ public final class VanillaAttackInputFallback {
       accessor.efn$setWeaponInnatePressToggle(false);
       accessor.efn$setAttackLightPressToggle(false);
       accessor.efn$setWeaponInnatePressCounter(0);
+   }
+
+   private static void flushQueuedPackets(ControlEngineAccessor accessor) {
+      Set<CustomPacketPayload> queuedPackets = accessor.efn$getPacketsToSend();
+      if (queuedPackets.isEmpty()) {
+         trace("combo request flush packets=0");
+         return;
+      }
+
+      List<CustomPacketPayload> packets = List.copyOf(queuedPackets);
+      for (CustomPacketPayload packet : packets) {
+         EpicFightNetworkManager.sendToServer(packet);
+      }
+
+      queuedPackets.removeAll(packets);
+      trace("combo request flush packets={}", packets.size());
    }
 
    private static int autoAttackCount(LocalPlayerPatch playerPatch, CapabilityItem capabilityItem) {

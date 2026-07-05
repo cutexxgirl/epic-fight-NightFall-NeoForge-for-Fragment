@@ -4,6 +4,7 @@ import com.hm.efn.client.input.keymapping.EFNKeyMappings;
 import com.hm.efn.gameasset.EFNSKillDataKeys;
 import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
+import com.hm.efn.util.EFNInputKeyUtil;
 import com.p1nero.invincible.client.InvincibleKeyMappings;
 import java.util.Arrays;
 import net.minecraft.client.KeyMapping;
@@ -40,17 +41,17 @@ public class LongPressKeyHandler {
 
    @SubscribeEvent(priority = EventPriority.HIGHEST)
    public static void onKeyInput(Key inputEvent) {
-      handleInput(inputEvent.getKey(), inputEvent.getAction());
+      handleInput(false, inputEvent.getKey(), inputEvent.getAction());
    }
 
    @SubscribeEvent(priority = EventPriority.HIGHEST)
    public static void onMouseInput(Pre inputEvent) {
-      handleInput(inputEvent.getButton(), inputEvent.getAction());
+      handleInput(true, inputEvent.getButton(), inputEvent.getAction());
    }
 
-   private static void handleInput(int keyCode, int action) {
+   private static void handleInput(boolean mouseInput, int keyCode, int action) {
       if (keyCode != -1 && action != 2) {
-         if (isMonitoredKey(keyCode)) {
+         if (isMonitoredKey(mouseInput, keyCode)) {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player != null) {
                LocalPlayerPatch localPlayerPatch = (LocalPlayerPatch)EpicFightCapabilities.getEntityPatch(player, LocalPlayerPatch.class);
@@ -58,8 +59,8 @@ public class LongPressKeyHandler {
                   SkillContainer container = getHandledEfnInnate(localPlayerPatch);
                   if (container != null) {
                      SkillDataManager manager = container.getDataManager();
-                     handleKeyInput(manager, keyCode, action);
-                     handleConditionKeyInput(manager, keyCode, action);
+                     handleKeyInput(manager, mouseInput, keyCode, action);
+                     handleConditionKeyInput(manager, mouseInput, keyCode, action);
                   } else {
                      resetTrackedState();
                   }
@@ -87,31 +88,31 @@ public class LongPressKeyHandler {
       }
    }
 
-   private static boolean isMonitoredKey(int keyCode) {
-      if (isVanillaAttackKey(keyCode)) {
+   private static boolean isMonitoredKey(boolean mouseInput, int keyCode) {
+      if (isVanillaAttackKey(mouseInput, keyCode)) {
          return true;
       }
 
       for (KeyMapping mapping : MAPPINGS) {
-         if (mapping.getKey().getValue() == keyCode) {
+         if (EFNInputKeyUtil.matches(mapping, mouseInput, keyCode)) {
             return true;
          }
       }
 
       Options options = Minecraft.getInstance().options;
-      return keyCode == EFNKeyMappings.DEMON.getKey().getValue()
-         || keyCode == EFNKeyMappings.ANGEL.getKey().getValue()
-         || keyCode == EFNKeyMappings.SUMMONED_SWORD.getKey().getValue()
-         || keyCode == EpicFightKeyMappings.GUARD.getKey().getValue()
-         || keyCode == options.keySprint.getKey().getValue()
-         || keyCode == options.keyJump.getKey().getValue()
-         || keyCode == options.keyUp.getKey().getValue()
-         || keyCode == options.keyDown.getKey().getValue()
-         || keyCode == options.keyShift.getKey().getValue();
+      return EFNInputKeyUtil.matches(EFNKeyMappings.DEMON, mouseInput, keyCode)
+         || EFNInputKeyUtil.matches(EFNKeyMappings.ANGEL, mouseInput, keyCode)
+         || EFNInputKeyUtil.matches(EFNKeyMappings.SUMMONED_SWORD, mouseInput, keyCode)
+         || EFNInputKeyUtil.matches(EpicFightKeyMappings.GUARD, mouseInput, keyCode)
+         || EFNInputKeyUtil.matches(options.keySprint, mouseInput, keyCode)
+         || EFNInputKeyUtil.matches(options.keyJump, mouseInput, keyCode)
+         || EFNInputKeyUtil.matches(options.keyUp, mouseInput, keyCode)
+         || EFNInputKeyUtil.matches(options.keyDown, mouseInput, keyCode)
+         || EFNInputKeyUtil.matches(options.keyShift, mouseInput, keyCode);
    }
 
-   private static void handleKeyInput(SkillDataManager manager, int keyCode, int action) {
-      int index = getComboKeyIndex(keyCode);
+   private static void handleKeyInput(SkillDataManager manager, boolean mouseInput, int keyCode, int action) {
+      int index = getComboKeyIndex(mouseInput, keyCode);
       if (index < 0) {
          return;
       }
@@ -133,13 +134,13 @@ public class LongPressKeyHandler {
       }
    }
 
-   private static int getComboKeyIndex(int keyCode) {
-      if (isVanillaAttackKey(keyCode)) {
+   private static int getComboKeyIndex(boolean mouseInput, int keyCode) {
+      if (isVanillaAttackKey(mouseInput, keyCode)) {
          return 0;
       }
 
       for (int i = 0; i < KEY_COUNT; i++) {
-         if (keyCode == MAPPINGS[i].getKey().getValue()) {
+         if (EFNInputKeyUtil.matches(MAPPINGS[i], mouseInput, keyCode)) {
             return i;
          }
       }
@@ -147,35 +148,37 @@ public class LongPressKeyHandler {
       return -1;
    }
 
-   private static boolean isVanillaAttackKey(int keyCode) {
-      return keyCode == Minecraft.getInstance().options.keyAttack.getKey().getValue();
+   private static boolean isVanillaAttackKey(boolean mouseInput, int keyCode) {
+      return EFNInputKeyUtil.matches(Minecraft.getInstance().options.keyAttack, mouseInput, keyCode);
    }
 
-   private static void handleConditionKeyInput(SkillDataManager manager, int keyCode, int action) {
+   private static void handleConditionKeyInput(SkillDataManager manager, boolean mouseInput, int keyCode, int action) {
       Options options = Minecraft.getInstance().options;
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.DEMON_KEY, EFNKeyMappings.DEMON);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.ANGEL_KEY, EFNKeyMappings.ANGEL);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.SUMMON_SWORD, EFNKeyMappings.SUMMONED_SWORD, true);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.GUARD_KEY, EpicFightKeyMappings.GUARD);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.SPRINT_KEY, options.keySprint);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.JUMP_KEY, options.keyJump);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.UP_KEY, options.keyUp);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.DOWN_KEY, options.keyDown);
-      checkAndUpdateKey(manager, keyCode, action, EFNSKillDataKeys.SNEAK_KEY, options.keyShift);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.DEMON_KEY, EFNKeyMappings.DEMON);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.ANGEL_KEY, EFNKeyMappings.ANGEL);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.SUMMON_SWORD, EFNKeyMappings.SUMMONED_SWORD, true);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.GUARD_KEY, EpicFightKeyMappings.GUARD);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.SPRINT_KEY, options.keySprint);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.JUMP_KEY, options.keyJump);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.UP_KEY, options.keyUp);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.DOWN_KEY, options.keyDown);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, EFNSKillDataKeys.SNEAK_KEY, options.keyShift);
    }
 
    private static void checkAndUpdateKey(
       SkillDataManager manager,
+      boolean mouseInput,
       int keyCode,
       int action,
       DeferredHolder<SkillDataKey<?>, SkillDataKey<Boolean>> dataKey,
       KeyMapping keyMapping
    ) {
-      checkAndUpdateKey(manager, keyCode, action, dataKey, keyMapping, false);
+      checkAndUpdateKey(manager, mouseInput, keyCode, action, dataKey, keyMapping, false);
    }
 
    private static void checkAndUpdateKey(
       SkillDataManager manager,
+      boolean mouseInput,
       int keyCode,
       int action,
       DeferredHolder<SkillDataKey<?>, SkillDataKey<Boolean>> dataKey,
@@ -183,7 +186,7 @@ public class LongPressKeyHandler {
       boolean pressOnly
    ) {
       if (dataKey != null && keyMapping != null) {
-         if (keyCode == keyMapping.getKey().getValue()) {
+         if (EFNInputKeyUtil.matches(keyMapping, mouseInput, keyCode)) {
             if (pressOnly && action == 0) {
                return;
             }

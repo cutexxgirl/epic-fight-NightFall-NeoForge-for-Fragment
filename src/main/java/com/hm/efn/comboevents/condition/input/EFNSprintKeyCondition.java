@@ -1,11 +1,11 @@
 package com.hm.efn.comboevents.condition.input;
 
 import com.hm.efn.gameasset.EFNSKillDataKeys;
+import com.hm.efn.util.EFNInputKeyUtil;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
-import org.lwjgl.glfw.GLFW;
 import yesman.epicfight.data.conditions.Condition;
 import yesman.epicfight.data.conditions.Condition.ParameterEditor;
 import yesman.epicfight.skill.SkillDataKey;
@@ -41,7 +41,7 @@ public class EFNSprintKeyCondition implements Condition<PlayerPatch<?>> {
       }
 
       if (playerPatch.isLogicalClient()) {
-         boolean currentState = GLFW.glfwGetKey(Minecraft.getInstance().getWindow().getWindow(), Minecraft.getInstance().options.keySprint.getKey().getValue()) == 1;
+         boolean currentState = EFNInputKeyUtil.isDown(Minecraft.getInstance().options.keySprint);
          return this.checkRelease != currentState;
       }
 

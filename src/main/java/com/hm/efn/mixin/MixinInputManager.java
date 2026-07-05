@@ -3,6 +3,7 @@ package com.hm.efn.mixin;
 import com.hm.efn.EFN;
 import com.hm.efn.skill.EFNWeaponInnateBase;
 import com.hm.efn.util.EFNBasicAttackRouting;
+import com.hm.efn.util.EFNInputKeyUtil;
 import com.google.common.collect.BiMap;
 import com.p1nero.invincible.InvincibleConfig;
 import com.p1nero.invincible.api.Side;
@@ -11,18 +12,16 @@ import com.p1nero.invincible.api.combo.ComboType;
 import com.p1nero.invincible.attachment.InvinciblePlayer;
 import com.p1nero.invincible.attachment.InvincibleAttachments;
 import com.p1nero.invincible.client.InputManager;
-import com.p1nero.invincible.client.InvincibleKeyMappings;
 import com.p1nero.invincible.gameassets.InvincibleConditions;
 import com.p1nero.invincible.gameassets.InvincibleSkillDataKeys;
 import com.p1nero.invincible.skill.ComboBasicAttack;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -59,9 +58,9 @@ public abstract class MixinInputManager {
    @Shadow(remap = false)
    private static ComboNode currentNode;
    @Unique
-   private static final Map<Integer, Integer> epicFight_Nightfall$efnActiveKeys = new HashMap<>();
+   private static final Map<ComboType, Integer> epicFight_Nightfall$efnActiveKeys = new HashMap<>();
    @Unique
-   private static final Queue<int[]> epicFight_Nightfall$efnInputBuffer = new LinkedList<>();
+   private static final Map<ComboType, int[]> epicFight_Nightfall$efnInputBuffer = new HashMap<>();
 
    @Shadow(remap = false)
    private static boolean shouldHandleInput() {
@@ -102,30 +101,30 @@ public abstract class MixinInputManager {
 
             ci.cancel();
             maybeHandleControlifyRelease();
-            Iterator<int[]> iterator = epicFight_Nightfall$efnInputBuffer.iterator();
+            Iterator<Map.Entry<ComboType, int[]>> iterator = epicFight_Nightfall$efnInputBuffer.entrySet().iterator();
 
             while (iterator.hasNext()) {
-               int[] input = iterator.next();
-               input[2]--;
-               if (input[2] <= 0) {
+               int[] input = iterator.next().getValue();
+               input[1]--;
+               if (input[1] <= 0) {
                   iterator.remove();
                }
             }
 
             int maxPressTick = getComboBasicSkill() != null ? getComboBasicSkill().getMaxPressTime() : (Integer)InvincibleConfig.MAX_PRESS_TICK.get();
-            List<Integer> keysToBuffer = new ArrayList<>();
-            epicFight_Nightfall$efnActiveKeys.replaceAll((keyId, ticks) -> {
+            List<ComboType> keysToBuffer = new ArrayList<>();
+            epicFight_Nightfall$efnActiveKeys.replaceAll((comboType, ticks) -> {
                int newTicks = ticks + 1;
                if (newTicks >= maxPressTick) {
-                  keysToBuffer.add(keyId);
+                  keysToBuffer.add(comboType);
                }
 
                return newTicks;
             });
 
-            for (Integer keyId : keysToBuffer) {
+            for (ComboType comboType : keysToBuffer) {
                int reserveTime = getComboBasicSkill() != null ? getComboBasicSkill().getMaxReserveTime() : (Integer)InvincibleConfig.RESERVE_TICK.get();
-               epicFight_Nightfall$efnInputBuffer.add(new int[]{keyId, epicFight_Nightfall$efnActiveKeys.remove(keyId), reserveTime});
+               epicFight_Nightfall$efnInputBuffer.put(comboType, new int[]{epicFight_Nightfall$efnActiveKeys.remove(comboType), reserveTime});
             }
 
             if (!epicFight_Nightfall$efnInputBuffer.isEmpty() || !epicFight_Nightfall$efnActiveKeys.isEmpty()) {
@@ -157,19 +156,11 @@ public abstract class MixinInputManager {
          }
 
          ci.cancel();
-         int normalizedKey = efn$normalizeInputKey(key);
+         boolean mouseInput = efn$isMouseInput(key);
          if (action == 1) {
-            efn$handlePress(key);
-            if (normalizedKey != key) {
-               efn$handlePress(normalizedKey);
-            }
+            efn$handlePress(mouseInput, key);
          } else if (action == 0) {
-            boolean handledRelease = efn$handleRelease(key);
-            if (normalizedKey != key) {
-               handledRelease |= efn$handleRelease(normalizedKey);
-            }
-
-            if (handledRelease) {
+            if (efn$handleRelease(mouseInput, key)) {
                efn$tryRequestSkillExecute();
             }
          }
@@ -177,34 +168,53 @@ public abstract class MixinInputManager {
    }
 
    @Unique
-   private static void efn$handlePress(int key) {
-      for (KeyMapping keyMapping : TYPE_KEY_MAP.values()) {
-         if (keyMapping.getKey().getValue() == key) {
-            epicFight_Nightfall$efnActiveKeys.put(key, 1);
-            break;
+   private static void efn$handlePress(boolean mouseInput, int key) {
+      for (Map.Entry<ComboType, KeyMapping> entry : TYPE_KEY_MAP.entrySet()) {
+         if (efn$matchesComboInput(entry.getKey(), entry.getValue(), mouseInput, key)) {
+            epicFight_Nightfall$efnActiveKeys.put(entry.getKey(), 1);
+            epicFight_Nightfall$efnInputBuffer.remove(entry.getKey());
          }
       }
    }
 
    @Unique
-   private static boolean efn$handleRelease(int key) {
-      if (epicFight_Nightfall$efnActiveKeys.containsKey(key)) {
-         int ticksHeld = epicFight_Nightfall$efnActiveKeys.remove(key);
-         int reserveTime = getComboBasicSkill() != null ? getComboBasicSkill().getMaxReserveTime() : (Integer)InvincibleConfig.RESERVE_TICK.get();
-         epicFight_Nightfall$efnInputBuffer.add(new int[]{key, ticksHeld, reserveTime});
-         return true;
+   private static boolean efn$handleRelease(boolean mouseInput, int key) {
+      boolean handled = false;
+      for (Map.Entry<ComboType, KeyMapping> entry : TYPE_KEY_MAP.entrySet()) {
+         if (efn$matchesComboInput(entry.getKey(), entry.getValue(), mouseInput, key) && epicFight_Nightfall$efnActiveKeys.containsKey(entry.getKey())) {
+            int ticksHeld = epicFight_Nightfall$efnActiveKeys.remove(entry.getKey());
+            int reserveTime = getComboBasicSkill() != null ? getComboBasicSkill().getMaxReserveTime() : (Integer)InvincibleConfig.RESERVE_TICK.get();
+            epicFight_Nightfall$efnInputBuffer.put(entry.getKey(), new int[]{ticksHeld, reserveTime});
+            handled = true;
+         }
       }
 
-      return false;
+      return handled;
    }
 
    @Unique
-   private static int efn$normalizeInputKey(int key) {
-      if (key == Minecraft.getInstance().options.keyAttack.getKey().getValue()) {
-         return InvincibleKeyMappings.KEY1.getKey().getValue();
+   private static boolean efn$matchesComboInput(ComboType comboType, KeyMapping keyMapping, boolean mouseInput, int key) {
+      if (comboType == ComboNode.ComboTypes.KEY_1 && EFNInputKeyUtil.matches(Minecraft.getInstance().options.keyAttack, mouseInput, key)) {
+         return true;
       }
 
-      return key;
+      return EFNInputKeyUtil.matches(keyMapping, mouseInput, key);
+   }
+
+   @Unique
+   private static boolean efn$isMouseInput(int key) {
+      if (key == Minecraft.getInstance().options.keyAttack.getKey().getValue()
+         && Minecraft.getInstance().options.keyAttack.getKey().getType() == InputConstants.Type.MOUSE) {
+         return true;
+      }
+
+      for (KeyMapping keyMapping : TYPE_KEY_MAP.values()) {
+         if (keyMapping.getKey().getType() == InputConstants.Type.MOUSE && keyMapping.getKey().getValue() == key) {
+            return true;
+         }
+      }
+
+      return false;
    }
 
    @Unique
@@ -342,15 +352,12 @@ public abstract class MixinInputManager {
             return 0;
          }
 
-         int targetKeyId = keyMapping.getKey().getValue();
-
-         for (int[] input : epicFight_Nightfall$efnInputBuffer) {
-            if (input[0] == targetKeyId) {
-               return input[1];
-            }
+         int[] bufferedInput = epicFight_Nightfall$efnInputBuffer.get(comboType);
+         if (bufferedInput != null) {
+            return bufferedInput[0];
          }
 
-         return epicFight_Nightfall$efnActiveKeys.getOrDefault(targetKeyId, 0);
+         return epicFight_Nightfall$efnActiveKeys.getOrDefault(comboType, 0);
       } else {
          int max = 0;
 
