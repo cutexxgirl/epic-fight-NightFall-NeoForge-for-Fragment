@@ -50,6 +50,14 @@ public abstract class RuinfighterItem extends ArmorItem {
       return false;
    }
 
+   @Override
+   public ResourceLocation getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, ArmorMaterial.Layer layer, boolean innerModel) {
+      return switch (slot) {
+         case CHEST, LEGS -> ResourceLocation.fromNamespaceAndPath("efn", "textures/armor/ruinfighter_mesh.png");
+         default -> ResourceLocation.fromNamespaceAndPath("efn", "textures/armor/ruinfighter.png");
+      };
+   }
+
    public static class Boots extends RuinfighterItem {
       public Boots() {
          super(Type.BOOTS, new Properties());
@@ -90,10 +98,6 @@ public abstract class RuinfighterItem extends ArmorItem {
          );
       }
 
-      public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-         return "efn:textures/armor/ruinfighter.png";
-      }
-
       public boolean isEnchantable(@NotNull ItemStack stack) {
          return true;
       }
@@ -106,10 +110,6 @@ public abstract class RuinfighterItem extends ArmorItem {
    public static class Chestplate extends RuinfighterItem {
       public Chestplate() {
          super(Type.CHESTPLATE, new Properties());
-      }
-
-      public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-         return "efn:textures/armor/ruinfighter_mesh.png";
       }
 
       public boolean isEnchantable(@NotNull ItemStack stack) {
@@ -160,10 +160,6 @@ public abstract class RuinfighterItem extends ArmorItem {
          );
       }
 
-      public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-         return "efn:textures/armor/ruinfighter.png";
-      }
-
       public boolean isEnchantable(@NotNull ItemStack stack) {
          return true;
       }
@@ -176,10 +172,6 @@ public abstract class RuinfighterItem extends ArmorItem {
    public static class Leggings extends RuinfighterItem {
       public Leggings() {
          super(Type.LEGGINGS, new Properties());
-      }
-
-      public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-         return "efn:textures/armor/ruinfighter_mesh.png";
       }
 
       public boolean isEnchantable(@NotNull ItemStack stack) {

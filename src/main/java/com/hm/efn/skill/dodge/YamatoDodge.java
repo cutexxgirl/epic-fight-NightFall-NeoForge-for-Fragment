@@ -2,21 +2,19 @@ package com.hm.efn.skill.dodge;
 
 import com.hm.efn.gameasset.EFNWeaponCategories;
 import com.hm.efn.gameasset.animations.EFNDodgeAnimations;
-import java.util.Objects;
+import com.hm.efn.gameasset.combos.Yamato;
+import com.hm.efn.item.custom.YamatoItem;
 import java.util.UUID;
 import java.util.stream.Stream;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.Input;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import yesman.epicfight.api.animation.AnimationManager.AnimationAccessor;
@@ -25,9 +23,7 @@ import yesman.epicfight.api.animation.types.StaticAnimation;
 import yesman.epicfight.client.events.engine.ControlEngine;
 import yesman.epicfight.client.input.InputUtils;
 import yesman.epicfight.client.world.capabilites.entitypatch.player.LocalPlayerPatch;
-import yesman.epicfight.network.client.CPSkillRequest;
 import yesman.epicfight.skill.SkillContainer;
-import yesman.epicfight.skill.SkillDataKey;
 import yesman.epicfight.registry.entries.EpicFightSkillDataKeys;
 import yesman.epicfight.skill.dodge.DodgeSkill;
 import yesman.epicfight.skill.dodge.DodgeSkill.Builder;
@@ -61,20 +57,54 @@ public class YamatoDodge extends DodgeSkill {
       return animationIndex < 0 || animationIndex > 5 ? (serverIsInAir ? 5 : 4) : animationIndex;
    }
 
+   private static void ensureJumpCountData(SkillContainer container) {
+      if (!container.getDataManager().hasData(EpicFightSkillDataKeys.JUMP_COUNT)) {
+         container.getDataManager().registerData(EpicFightSkillDataKeys.JUMP_COUNT);
+      }
+   }
+
+   private static int getJumpCount(SkillContainer container) {
+      ensureJumpCountData(container);
+      Integer jumpCount = container.getDataManager().getDataValue(EpicFightSkillDataKeys.JUMP_COUNT);
+      return jumpCount == null ? 0 : jumpCount;
+   }
+
+   private static void setJumpCount(SkillContainer container, int jumpCount) {
+      ensureJumpCountData(container);
+      container.getDataManager().setData(EpicFightSkillDataKeys.JUMP_COUNT, jumpCount);
+   }
+
+   private static boolean hasYamatoCategory(ItemStack stack) {
+      CapabilityItem capability = EpicFightCapabilities.getItemStackCapability(stack);
+      return capability != null && capability.getWeaponCategory() == EFNWeaponCategories.EFN_YAMATO;
+   }
+
+   private static boolean isYamatoStack(PlayerPatch<?> executor, ItemStack stack) {
+      if (stack.getItem() instanceof YamatoItem || hasYamatoCategory(stack)) {
+         return true;
+      }
+
+      CapabilityItem capability = EpicFightCapabilities.getItemStackCapability(stack);
+      return capability != null && capability.getInnateSkill(executor, stack) == Yamato.yamato;
+   }
+
    public static boolean isHoldingYamato(Player player) {
       return player == null
          ? false
          : Stream.of(player.getMainHandItem(), player.getOffhandItem())
-            .<CapabilityItem>map(EpicFightCapabilities::getItemStackCapability)
-            .filter(Objects::nonNull)
-            .anyMatch(cap -> cap.getWeaponCategory() == EFNWeaponCategories.EFN_YAMATO);
+            .anyMatch(stack -> stack.getItem() instanceof YamatoItem || hasYamatoCategory(stack));
+   }
+
+   private boolean isHoldingYamato(SkillContainer container) {
+      PlayerPatch<?> executor = container.getExecutor();
+      Player player = (Player)executor.getOriginal();
+      return Stream.of(player.getMainHandItem(), player.getOffhandItem()).anyMatch(stack -> isYamatoStack(executor, stack));
    }
 
    public void onInitiate(SkillContainer container, yesman.epicfight.api.event.EntityEventListener eventListener) {
       super.onInitiate(container, eventListener);
       EntityEventListener listener = container.getExecutor().getEventListener();
-      container.getDataManager().registerData(EpicFightSkillDataKeys.JUMP_COUNT);
-      container.getDataManager().setData(EpicFightSkillDataKeys.JUMP_COUNT, 0);
+      setJumpCount(container, 0);
       com.hm.efn.util.EFNEventBridge.addEventListener(listener, 
          EventType.MOVEMENT_INPUT_EVENT,
          JUMP_EVENT_UUID,
@@ -92,13 +122,13 @@ public class YamatoDodge extends DodgeSkill {
                boolean jumpPressed = Minecraft.getInstance().options.keyJump.isDown();
                boolean isOnGround = localPlayer.onGround();
                if (isOnGround && jumpPressed) {
-                  container.getDataManager().setData(EpicFightSkillDataKeys.JUMP_COUNT, 1);
+                  setJumpCount(container, 1);
                }
             }
          }
       );
       com.hm.efn.util.EFNEventBridge.addEventListener(listener, 
-         EventType.FALL_EVENT, JUMP_EVENT_UUID, event -> container.getDataManager().setData(EpicFightSkillDataKeys.JUMP_COUNT, 0)
+         EventType.FALL_EVENT, JUMP_EVENT_UUID, event -> setJumpCount(container, 0)
       );
    }
 
@@ -108,10 +138,14 @@ public class YamatoDodge extends DodgeSkill {
    }
 
    public boolean canExecute(SkillContainer container) {
-      return isHoldingYamato((Player)container.getExecutor().getOriginal());
+      return this.isHoldingYamato(container);
    }
 
    public boolean isExecutableState(PlayerPatch<?> executor) {
+      if (!executor.isLogicalClient()) {
+         return true;
+      }
+
       EntityState playerState = executor.getEntityState();
       return playerState.canUseSkill()
          && !((Player)executor.getOriginal()).onClimbable()
@@ -133,7 +167,7 @@ public class YamatoDodge extends DodgeSkill {
       float yRot = Minecraft.getInstance().gameRenderer.getMainCamera().getYRot();
       float degree = -(90 * horizon * (1 - Math.abs(vertic)) + 45 * vertic * horizon) + yRot;
       boolean isInAir = !((LocalPlayer)executor.getOriginal()).onGround();
-      int jumpCounter = (Integer)skillContainer.getDataManager().getDataValue(EpicFightSkillDataKeys.JUMP_COUNT);
+      int jumpCounter = getJumpCount(skillContainer);
       boolean canDoubleJump = isInAir && jumpCounter > 0;
       int directionIndex;
       float finalDegree;
@@ -143,7 +177,7 @@ public class YamatoDodge extends DodgeSkill {
       } else if (isInAir && vertic == 0 && horizon == 0 && canDoubleJump) {
          directionIndex = 4;
          finalDegree = yRot;
-         skillContainer.getDataManager().setData(EpicFightSkillDataKeys.JUMP_COUNT, 0);
+         setJumpCount(skillContainer, 0);
       } else if (!isInAir && vertic == 0 && horizon == 0) {
          directionIndex = 4;
          finalDegree = yRot;
@@ -174,7 +208,7 @@ public class YamatoDodge extends DodgeSkill {
       boolean clientIsInAir = args.getBoolean("isInAir");
       int clientJumpCounter = args.getInt("jumpCounter");
       boolean serverIsInAir = !((ServerPlayer)executor.getOriginal()).onGround();
-      skillContainer.getDataManager().setData(EpicFightSkillDataKeys.JUMP_COUNT, clientJumpCounter);
+      setJumpCount(skillContainer, clientJumpCounter);
       boolean canDoubleJump = serverIsInAir && clientJumpCounter > 0;
       if (serverIsInAir && animationIndex == 1) {
          animationIndex = 5;
@@ -184,7 +218,7 @@ public class YamatoDodge extends DodgeSkill {
          if (!canDoubleJump) {
             animationIndex = 0;
          } else {
-            skillContainer.getDataManager().setData(EpicFightSkillDataKeys.JUMP_COUNT, 0);
+            setJumpCount(skillContainer, 0);
             ((ServerPlayer)executor.getOriginal())
                .setDeltaMovement(((ServerPlayer)executor.getOriginal()).getDeltaMovement().x, 0.5, ((ServerPlayer)executor.getOriginal()).getDeltaMovement().z);
          }

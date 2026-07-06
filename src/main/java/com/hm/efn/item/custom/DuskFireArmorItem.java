@@ -61,13 +61,14 @@ public abstract class DuskFireArmorItem extends ArmorItem {
       return false;
    }
 
+   @Override
+   public ResourceLocation getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, ArmorMaterial.Layer layer, boolean innerModel) {
+      return ResourceLocation.fromNamespaceAndPath("efn", "textures/armor/duskfirearmor.png");
+   }
+
    public static class Boots extends DuskFireArmorItem {
       public Boots() {
          super(Type.BOOTS, new Properties());
-      }
-
-      public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-         return "efn:textures/armor/duskfirearmor.png";
       }
 
       public boolean isEnchantable(@NotNull ItemStack stack) {
@@ -88,10 +89,6 @@ public abstract class DuskFireArmorItem extends ArmorItem {
          super(Type.CHESTPLATE, new Properties());
       }
 
-      public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-         return "efn:textures/armor/duskfirearmor.png";
-      }
-
       public boolean isEnchantable(@NotNull ItemStack stack) {
          return true;
       }
@@ -110,10 +107,6 @@ public abstract class DuskFireArmorItem extends ArmorItem {
          super(Type.HELMET, new Properties());
       }
 
-      public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-         return "efn:textures/armor/duskfirearmor.png";
-      }
-
       public boolean isEnchantable(@NotNull ItemStack stack) {
          return true;
       }
@@ -130,10 +123,6 @@ public abstract class DuskFireArmorItem extends ArmorItem {
    public static class Leggings extends DuskFireArmorItem {
       public Leggings() {
          super(Type.LEGGINGS, new Properties());
-      }
-
-      public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-         return "efn:textures/armor/duskfirearmor.png";
       }
 
       public boolean isEnchantable(@NotNull ItemStack stack) {
